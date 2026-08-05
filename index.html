@@ -33,7 +33,7 @@
 
   /* ── SCREENS ── */
   .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transition:opacity .3s;overflow-y:auto;}
-  .screen.hidden{opacity:0;pointer-events:none;}
+  .screen.hidden{display:none!important;opacity:0;pointer-events:none;}
 
   /* ── HOME ── */
   #home-screen{background:radial-gradient(ellipse at 60% 40%,#1a1a3e 0%,var(--bg) 70%);}
@@ -133,6 +133,9 @@
   .dot:nth-child(3){animation-delay:.4s;}
   @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)};}
   .waiting-text{color:var(--muted);font-size:.9rem;margin-left:8px;}
+  .color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s,border-color .15s;}
+  .color-opt:hover{transform:scale(1.2);}
+  .color-opt.selected{border-color:#fff;transform:scale(1.15);}
 
   /* ── HELP TEXT ── */
   .help-text{font-size:.78rem;color:var(--muted);text-align:center;line-height:1.5;}
@@ -160,22 +163,130 @@
 </head>
 <body>
 
-<!-- ═══════════════ NAME MODAL ═══════════════ -->
-<div class="modal-overlay hidden" id="name-modal">
-  <div class="modal">
-    <div class="modal-title">👤 What's your name?</div>
-    <div class="modal-sub">This will show to other players in the room.</div>
-    <div class="input-group">
-      <input type="text" id="player-name-input" placeholder="e.g. John" maxlength="16" autocomplete="off"/>
+<!-- ═══════════════ AUTH SCREEN ═══════════════ -->
+<div class="screen" id="auth-screen" style="background:radial-gradient(ellipse at 60% 40%,#1a1a3e 0%,var(--bg) 70%);">
+  <div style="text-align:center;margin-bottom:32px;">
+    <div class="logo">NumHunt</div>
+    <div class="tagline">find the number — beat the clock</div>
+  </div>
+  <div class="card" style="max-width:360px;width:100%;">
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;margin-bottom:20px;background:var(--bg);border-radius:12px;padding:4px;">
+      <button id="auth-tab-login" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;background:var(--accent);color:#fff;transition:all .2s;">Login</button>
+      <button id="auth-tab-create" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;">Create</button>
     </div>
-    <button class="btn btn-primary" style="width:100%" id="name-confirm-btn"><i class="fa-solid fa-circle-check"></i> Continue</button>
+
+    <!-- CREATE PROFILE -->
+    <div id="auth-create-panel" class="hidden">
+      <div class="input-group">
+        <label>USERNAME</label>
+        <input type="text" id="create-username" placeholder="e.g. Johnny" maxlength="16" autocomplete="off"/>
+      </div>
+      <div class="input-group">
+        <label>4-DIGIT PIN</label>
+        <input type="password" id="create-pin" placeholder="••••" maxlength="4" inputmode="numeric"/>
+      </div>
+      <div class="input-group">
+        <label>SECRET WORD (for PIN reset)</label>
+        <input type="text" id="create-secret" placeholder="e.g. your pet's name" maxlength="30" autocomplete="off"/>
+      </div>
+      <div class="input-group">
+        <label>PICK YOUR COLOR</label>
+        <div id="color-picker" style="display:flex;gap:8px;flex-wrap:wrap;padding:4px 0;">
+          <div class="color-opt" data-color="#e94560" style="background:#e94560;"></div>
+          <div class="color-opt" data-color="#0f7" style="background:#00ff77;"></div>
+          <div class="color-opt" data-color="#f5a623" style="background:#f5a623;"></div>
+          <div class="color-opt" data-color="#9b59b6" style="background:#9b59b6;"></div>
+          <div class="color-opt" data-color="#3498db" style="background:#3498db;"></div>
+          <div class="color-opt" data-color="#1abc9c" style="background:#1abc9c;"></div>
+          <div class="color-opt" data-color="#e67e22" style="background:#e67e22;"></div>
+          <div class="color-opt" data-color="#fff" style="background:#fff;"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;" id="create-profile-btn"><i class="fa-solid fa-user-plus"></i> Create Profile</button>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div id="auth-login-panel">
+      <div class="input-group">
+        <label>USERNAME</label>
+        <input type="text" id="login-username" placeholder="Your username" maxlength="16" autocomplete="off"/>
+      </div>
+      <div class="input-group">
+        <label>PIN</label>
+        <input type="password" id="login-pin" placeholder="••••" maxlength="4" inputmode="numeric"/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;" id="login-btn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" style="width:100%;font-size:.8rem;" id="forgot-pin-btn"><i class="fa-solid fa-key"></i> Forgot PIN?</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ FORGOT PIN SCREEN ═══════════════ -->
+<div class="screen hidden" id="forgot-screen">
+  <div class="card" style="max-width:360px;width:100%;">
+    <div class="card-title">🔑 Reset PIN</div>
+    <div class="input-group">
+      <label>USERNAME</label>
+      <input type="text" id="forgot-username" placeholder="Your username" maxlength="16" autocomplete="off"/>
+    </div>
+    <div class="input-group">
+      <label>SECRET WORD</label>
+      <input type="text" id="forgot-secret" placeholder="Your secret word" maxlength="30" autocomplete="off"/>
+    </div>
+    <div class="input-group">
+      <label>NEW PIN</label>
+      <input type="password" id="forgot-new-pin" placeholder="••••" maxlength="4" inputmode="numeric"/>
+    </div>
+    <div class="row">
+      <button class="btn" id="forgot-back-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      <button class="btn" id="forgot-confirm-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#4ade80 0%,#22c55e 100%);color:#fff;box-shadow:0 6px 0 #15803d;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-check"></i> Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PROFILE SCREEN ═══════════════ -->
+<div class="screen hidden" id="profile-screen">
+  <div class="card" style="max-width:360px;width:100%;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div id="profile-avatar-big" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;margin:0 auto 12px;"></div>
+      <div style="font-size:1.4rem;font-weight:900;" id="profile-name-display">—</div>
+      <div style="font-size:.8rem;color:var(--muted);">Member since <span id="profile-since">—</span></div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:20px;">
+      <div style="flex:1;background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:1.6rem;font-weight:900;color:var(--accent);" id="profile-games">0</div>
+        <div style="font-size:.75rem;color:var(--muted);">Games</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:1.6rem;font-weight:900;color:var(--gold);" id="profile-wins">0</div>
+        <div style="font-size:.75rem;color:var(--muted);">Wins</div>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>CHANGE PIN</label>
+      <input type="password" id="profile-new-pin" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric"/>
+    </div>
+    <div class="input-group">
+      <label>CURRENT PIN (to confirm)</label>
+      <input type="password" id="profile-current-pin" placeholder="Current PIN" maxlength="4" inputmode="numeric"/>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-bottom:10px;" id="profile-change-pin-btn"><i class="fa-solid fa-lock"></i> Update PIN</button>
+    <div class="row">
+      <button class="btn" id="profile-back-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      <button class="btn" id="profile-logout-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#f5a623 0%,#d4891a 100%);color:#fff;box-shadow:0 6px 0 #9a6200;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
   </div>
 </div>
 
 <!-- ═══════════════ HOME SCREEN ═══════════════ -->
 <div class="screen" id="home-screen">
-  <div style="font-size:.85rem;color:var(--muted);margin-bottom:4px;letter-spacing:1px">Welcome back,</div>
-  <div style="font-size:1.3rem;font-weight:900;color:var(--text);margin-bottom:16px" id="home-username">—</div>
+  <div id="welcome-block" style="display:none;text-align:center;margin-bottom:16px;cursor:pointer;" id="home-profile-btn">
+    <div id="home-avatar" style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;margin:0 auto 8px;border:3px solid rgba(255,255,255,0.2);"></div>
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:2px;letter-spacing:1px">Welcome back,</div>
+    <div style="font-size:1.2rem;font-weight:900;color:var(--text);" id="home-username"></div>
+  </div>
   <div class="logo">NumHunt</div>
   <div class="tagline">find the number — beat the clock</div>
   <div class="home-btns">
@@ -183,7 +294,7 @@
     <div class="divider">or</div>
     <button class="btn btn-secondary" id="join-room-btn"><i class="fa-solid fa-door-open"></i> Join Room</button>
     <button class="btn btn-ghost" id="solo-btn"><i class="fa-solid fa-user"></i> Solo Practice</button>
-    <button class="btn" id="history-btn" style="min-width:160px;padding:12px 24px;background:linear-gradient(180deg,#f5c842 0%,#d4a017 100%);color:#1a1a00;box-shadow:0 6px 0 #9a7200;font-weight:800;"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
+    <button class="btn" id="history-btn" style="min-width:160px;padding:12px 24px;background:linear-gradient(180deg,#f5c842 0%,#d4a017 100%);color:#1a1a00;box-shadow:0 6px 0 #9a7200;font-weight:800;display:none;"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
   </div>
 </div>
 
@@ -624,25 +735,9 @@ function stopTimer() {
 // ═══════════════════════════════
 // NAME MODAL
 // ═══════════════════════════════
-function askName(action) {
-  pendingAction = action;
-  if(myName) { executePendingAction(); return; }
-  document.getElementById('player-name-input').value = '';
-  document.getElementById('name-modal').classList.remove('hidden');
-  setTimeout(()=>document.getElementById('player-name-input').focus(),200);
-}
-
-document.getElementById('name-confirm-btn').addEventListener('click', ()=>{
-  const val = document.getElementById('player-name-input').value.trim();
-  if(!val){toast('Enter your name first!');return;}
-  myName = val;
-  localStorage.setItem('numhunt_name', myName);
-  document.getElementById('home-username').textContent = myName;
-  document.getElementById('name-modal').classList.add('hidden');
-  executePendingAction();
-});
-document.getElementById('player-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('name-confirm-btn').click();});
-if(myName) document.getElementById('home-username').textContent = myName;
+document.getElementById('create-room-btn').addEventListener('click',()=>createRoom());
+document.getElementById('join-room-btn').addEventListener('click',()=>showJoinScreen());
+document.getElementById('solo-btn').addEventListener('click',()=>showScreen('solo-setup-screen'));
 
 function executePendingAction() {
   if(pendingAction==='create') createRoom();
@@ -662,9 +757,9 @@ onAuthStateChanged(auth, user=>{
 // ═══════════════════════════════
 // HOME BUTTONS
 // ═══════════════════════════════
-document.getElementById('create-room-btn').addEventListener('click',()=>askName('create'));
-document.getElementById('join-room-btn').addEventListener('click',()=>askName('join'));
-document.getElementById('solo-btn').addEventListener('click',()=>askName('solo'));
+document.getElementById('create-room-btn').addEventListener('click',()=>createRoom());
+document.getElementById('join-room-btn').addEventListener('click',()=>showJoinScreen());
+document.getElementById('solo-btn').addEventListener('click',()=>showScreen('solo-setup-screen'));
 
 // ═══════════════════════════════
 // CREATE ROOM
@@ -1161,31 +1256,280 @@ function showSoloResults() {
 }
 
 // ═══════════════════════════════
-// HISTORY
+// PROFILE & AUTH
 // ═══════════════════════════════
+let selectedColor = '#e94560';
+
+// Hash PIN simply (not cryptographic but sufficient)
+function hashPin(pin) {
+  let h = 0;
+  for(let c of pin+'numhunt_salt') { h = ((h<<5)-h)+c.charCodeAt(0); h|=0; }
+  return Math.abs(h).toString(36);
+}
+
+// Color picker
+document.querySelectorAll('.color-opt').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.color-opt').forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedColor = el.dataset.color;
+  });
+});
+document.querySelector('.color-opt')?.classList.add('selected');
+
+// Auth tabs
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('auth-login-panel').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('auth-create-panel').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-tab-login').style.background = isLogin ? 'var(--accent)' : 'transparent';
+  document.getElementById('auth-tab-login').style.color = isLogin ? '#fff' : 'var(--muted)';
+  document.getElementById('auth-tab-create').style.background = isLogin ? 'transparent' : 'var(--accent)';
+  document.getElementById('auth-tab-create').style.color = isLogin ? 'var(--muted)' : '#fff';
+}
+document.getElementById('auth-tab-login').addEventListener('click',()=>switchAuthTab('login'));
+document.getElementById('auth-tab-create').addEventListener('click',()=>switchAuthTab('create'));
+switchAuthTab('login');
+
+// Create profile
+document.getElementById('create-profile-btn').addEventListener('click', async()=>{
+  const username = document.getElementById('create-username').value.trim();
+  const pin = document.getElementById('create-pin').value.trim();
+  const secret = document.getElementById('create-secret').value.trim().toLowerCase();
+  if(!username){toast('Enter a username');return;}
+  if(pin.length!==4||isNaN(pin)){toast('PIN must be 4 digits');return;}
+  if(!secret){toast('Enter a secret word');return;}
+  // Check if username exists
+  const ref = doc(db,'users',username.toLowerCase());
+  const snap = await getDoc(ref);
+  if(snap.exists()){toast('Username taken — try another');return;}
+  // Save to Firestore
+  await setDoc(ref,{
+    username,
+    pin: hashPin(pin),
+    secret: hashPin(secret),
+    avatarColor: selectedColor,
+    createdAt: serverTimestamp(),
+    totalGames: 0,
+    totalWins: 0
+  });
+  // Save locally
+  localStorage.setItem('numhunt_username', username);
+  localStorage.setItem('numhunt_uid', username.toLowerCase());
+  localStorage.setItem('numhunt_name', username);
+  localStorage.setItem('numhunt_color', selectedColor);
+  myUid = username.toLowerCase();
+  myName = username;
+  loadHomeProfile();
+  showScreen('home-screen');
+  toast('Profile created! Welcome '+username+'🎉');
+});
+
+// Login
+document.getElementById('login-btn').addEventListener('click', async()=>{
+  const username = document.getElementById('login-username').value.trim();
+  const pin = document.getElementById('login-pin').value.trim();
+  if(!username||!pin){toast('Fill in all fields');return;}
+  const ref = doc(db,'users',username.toLowerCase());
+  const snap = await getDoc(ref);
+  if(!snap.exists()){toast('Username not found');return;}
+  const data = snap.data();
+  if(data.pin !== hashPin(pin)){toast('Wrong PIN');return;}
+  // Save locally
+  localStorage.setItem('numhunt_username', data.username);
+  localStorage.setItem('numhunt_uid', username.toLowerCase());
+  localStorage.setItem('numhunt_name', data.username);
+  localStorage.setItem('numhunt_color', data.avatarColor);
+  myUid = username.toLowerCase();
+  myName = data.username;
+  loadHomeProfile();
+  showScreen('home-screen');
+  toast('Welcome back '+data.username+'! 👋');
+});
+
+// Forgot PIN
+document.getElementById('forgot-pin-btn').addEventListener('click',()=>showScreen('forgot-screen'));
+document.getElementById('forgot-back-btn').addEventListener('click',()=>showScreen('auth-screen'));
+document.getElementById('forgot-confirm-btn').addEventListener('click', async()=>{
+  const username = document.getElementById('forgot-username').value.trim();
+  const secret = document.getElementById('forgot-secret').value.trim().toLowerCase();
+  const newPin = document.getElementById('forgot-new-pin').value.trim();
+  if(!username||!secret||!newPin){toast('Fill in all fields');return;}
+  if(newPin.length!==4||isNaN(newPin)){toast('PIN must be 4 digits');return;}
+  const ref = doc(db,'users',username.toLowerCase());
+  const snap = await getDoc(ref);
+  if(!snap.exists()){toast('Username not found');return;}
+  const data = snap.data();
+  if(data.secret !== hashPin(secret)){toast('Wrong secret word');return;}
+  await updateDoc(ref,{ pin: hashPin(newPin) });
+  toast('PIN reset! You can now login.');
+  showScreen('auth-screen');
+});
+
+// Profile screen
+document.getElementById('welcome-block').addEventListener('click',()=>showProfile());
+document.getElementById('profile-back-btn').addEventListener('click',()=>showScreen('home-screen'));
+document.getElementById('profile-logout-btn').addEventListener('click',()=>{
+  localStorage.removeItem('numhunt_username');
+  localStorage.removeItem('numhunt_uid');
+  localStorage.removeItem('numhunt_name');
+  localStorage.removeItem('numhunt_color');
+  myUid=null; myName='';
+  showScreen('auth-screen');
+});
+
+document.getElementById('profile-avatar-big').insertAdjacentHTML('afterend', `
+  <div style="margin-bottom:12px;">
+    <div class="input-group" style="margin-bottom:8px;">
+      <label>NEW USERNAME</label>
+      <input type="text" id="profile-new-username" placeholder="New username" maxlength="16" style="width:100%;background:#111827;border:1.5px solid #2a2a3e;border-radius:10px;color:var(--text);font-size:1rem;padding:10px 14px;outline:none;"/>
+    </div>
+    <div class="input-group" style="margin-bottom:8px;">
+      <label>SECRET WORD (to confirm)</label>
+      <input type="text" id="profile-secret-confirm" placeholder="Your secret word" maxlength="30" style="width:100%;background:#111827;border:1.5px solid #2a2a3e;border-radius:10px;color:var(--text);font-size:1rem;padding:10px 14px;outline:none;"/>
+    </div>
+    <button class="btn" id="profile-change-username-btn" style="width:100%;background:linear-gradient(180deg,#4ade80 0%,#22c55e 100%);color:#fff;box-shadow:0 4px 0 #15803d;font-weight:800;padding:12px;"><i class="fa-solid fa-pen"></i> Change Username</button>
+  </div>
+`);
+
+document.getElementById('profile-change-username-btn').addEventListener('click', async()=>{
+  const newUsername = document.getElementById('profile-new-username').value.trim();
+  const secretWord = document.getElementById('profile-secret-confirm').value.trim().toLowerCase();
+  if(!newUsername){toast('Enter a new username');return;}
+  if(!secretWord){toast('Enter your secret word');return;}
+  if(newUsername.toLowerCase()===myUid){toast('That is already your username');return;}
+  // Verify secret word
+  const oldRef = doc(db,'users',myUid);
+  const oldSnap = await getDoc(oldRef);
+  if(!oldSnap.exists()){toast('Profile not found');return;}
+  if(oldSnap.data().secret !== hashPin(secretWord)){toast('Wrong secret word');return;}
+  // Check if taken
+  const newRef = doc(db,'users',newUsername.toLowerCase());
+  const snap = await getDoc(newRef);
+  if(snap.exists()){toast('Username already taken');return;}
+  // Get current data
+  const oldData = oldSnap.data();
+  // Copy to new doc
+  await setDoc(newRef,{...oldData, username:newUsername});
+  // Delete old doc
+  const { deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+  await deleteDoc(oldRef);
+  // Update localStorage
+  myUid = newUsername.toLowerCase();
+  myName = newUsername;
+  localStorage.setItem('numhunt_uid', myUid);
+  localStorage.setItem('numhunt_name', myName);
+  localStorage.setItem('numhunt_username', newUsername);
+  // Update UI
+  document.getElementById('home-username').textContent = myName;
+  document.getElementById('home-avatar').textContent = myName[0].toUpperCase();
+  document.getElementById('profile-name-display').textContent = newUsername;
+  document.getElementById('profile-new-username').value = '';
+  toast('Username updated to '+newUsername+'! ✅');
+});
+
+document.getElementById('profile-change-pin-btn').addEventListener('click', async()=>{
+  const newPin = document.getElementById('profile-new-pin').value.trim();
+  const currentPin = document.getElementById('profile-current-pin').value.trim();
+  if(newPin.length!==4||isNaN(newPin)){toast('New PIN must be 4 digits');return;}
+  if(!currentPin){toast('Enter your current PIN');return;}
+  const ref = doc(db,'users',myUid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()){toast('Profile not found');return;}
+  if(snap.data().pin!==hashPin(currentPin)){toast('Wrong current PIN');return;}
+  await updateDoc(ref,{pin:hashPin(newPin)});
+  toast('PIN updated!');
+  document.getElementById('profile-new-pin').value='';
+  document.getElementById('profile-current-pin').value='';
+});
+
+async function showProfile() {
+  showScreen('profile-screen');
+  const ref = doc(db,'users',myUid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return;
+  const d = snap.data();
+  document.getElementById('profile-avatar-big').textContent = myName[0].toUpperCase();
+  document.getElementById('profile-avatar-big').style.background = d.avatarColor||'var(--accent)';
+  document.getElementById('profile-name-display').textContent = d.username;
+  document.getElementById('profile-since').textContent = d.createdAt?.toDate ? 
+    d.createdAt.toDate().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+  document.getElementById('profile-games').textContent = d.totalGames||0;
+  document.getElementById('profile-wins').textContent = d.totalWins||0;
+}
+
+function loadHomeProfile() {
+  const color = localStorage.getItem('numhunt_color')||'var(--accent)';
+  const name = localStorage.getItem('numhunt_name')||'';
+  if(name) {
+    document.getElementById('home-avatar').style.background = color;
+    document.getElementById('home-avatar').textContent = name[0].toUpperCase();
+    document.getElementById('home-username').textContent = name;
+    document.getElementById('welcome-block').style.display = 'block';
+  }
+  if(getHistory().length>0) document.getElementById('history-btn').style.display='flex';
+}
+
+// Check if already logged in on this device
+function checkAutoLogin() {
+  const savedUsername = localStorage.getItem('numhunt_username');
+  if(savedUsername) {
+    myUid = localStorage.getItem('numhunt_uid');
+    myName = localStorage.getItem('numhunt_name');
+    loadHomeProfile();
+    showScreen('home-screen');
+  } else {
+    showScreen('auth-screen');
+  }
+}
+checkAutoLogin();
 const HISTORY_KEY = 'numhunt_history';
 
-function saveGameToHistory(data, isSolo=false) {
-  const history = getHistory();
+async function saveGameToHistory(data, isSolo=false) {
   const players = data.players || {};
   const roundResults = data.roundResults || {};
 
-  // Build rounds array
   const rounds = [];
   for(let i=1;i<=data.totalRounds;i++) {
     const r = roundResults[`round_${i}`];
     if(r) rounds.push({ round:i, uid:r.uid, name:r.name, ms:r.ms });
   }
 
- 
+  const totals = Object.entries(players).map(([uid,p])=>({
+    uid, name:p.name, total:(p.scores||[]).reduce((a,b)=>a+b,0), scores:p.scores||[]
+  })).sort((a,b)=>a.total-b.total);
 
-  history.unshift(entry);
-  // Keep last 100 games
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0,100)));
+  const isMyWin = totals[0]?.uid === myUid;
+
+  const entry = {
+    id: Date.now(),
+    code: isSolo ? 'SOLO' : data.code,
+    date: new Date().toISOString(),
+    isSolo,
+    winner: totals[0]?.name || '—',
+    winnerUid: totals[0]?.uid,
+    isMyWin,
+    players: totals,
+    rounds,
+    settings: data.settings,
+    totalRounds: data.totalRounds
+  };
+
+  // Save to Firestore
+  try {
+    const hRef = doc(db, 'users', myUid, 'history', String(entry.id));
+    await setDoc(hRef, entry);
+    // Update stats
+    const uRef = doc(db, 'users', myUid);
+    await updateDoc(uRef, {
+      totalGames: (await getDoc(uRef)).data()?.totalGames + 1 || 1,
+      totalWins: isMyWin ? ((await getDoc(uRef)).data()?.totalWins + 1 || 1) : ((await getDoc(uRef)).data()?.totalWins || 0)
+    });
+  } catch(e){ console.warn('History save failed', e); }
+  document.getElementById('history-btn').style.display = 'flex';
 }
 
-function saveSoloToHistory() {
-  const history = getHistory();
+async function saveSoloToHistory() {
   const total = soloScores.reduce((a,b)=>a+b,0);
   const entry = {
     id: Date.now(),
@@ -1200,12 +1544,31 @@ function saveSoloToHistory() {
     settings: soloGameConfig,
     totalRounds: soloTotalRounds
   };
-  history.unshift(entry);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0,100)));
+  try {
+    const hRef = doc(db, 'users', myUid, 'history', String(entry.id));
+    await setDoc(hRef, entry);
+    const uRef = doc(db, 'users', myUid);
+    const uSnap = await getDoc(uRef);
+    await updateDoc(uRef, {
+      totalGames: (uSnap.data()?.totalGames||0) + 1,
+      totalWins: (uSnap.data()?.totalWins||0) + 1
+    });
+  } catch(e){ console.warn('Solo history save failed', e); }
+  document.getElementById('history-btn').style.display = 'flex';
 }
 
 function getHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); } catch{ return []; }
+}
+
+async function getFirestoreHistory() {
+  if(!myUid) return [];
+  try {
+    const { getDocs, collection: col, orderBy, query, limit } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const q = query(col(db,'users',myUid,'history'), orderBy('id','desc'), limit(100));
+    const snap = await getDocs(q);
+    return snap.docs.map(d=>d.data());
+  } catch(e){ return []; }
 }
 
 function formatDate(iso) {
@@ -1215,7 +1578,7 @@ function formatDate(iso) {
 
 let historyTab = 'solo';
 
-function switchHistoryTab(tab) {
+async function switchHistoryTab(tab) {
   historyTab = tab;
   document.getElementById('tab-solo').style.background = tab==='solo' ? 'var(--accent)' : 'transparent';
   document.getElementById('tab-solo').style.color = tab==='solo' ? '#fff' : 'var(--muted)';
@@ -1224,8 +1587,9 @@ function switchHistoryTab(tab) {
   renderHistory();
 }
 
-function renderHistory() {
-  let list = getHistory();
+async function renderHistory() {
+  document.getElementById('history-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Loading…</div>';
+  let list = await getFirestoreHistory();
   // Tab filter
   if(historyTab==='solo') list = list.filter(g=>g.isSolo);
   else list = list.filter(g=>!g.isSolo);
@@ -1313,7 +1677,7 @@ function showHistoryDetail(g) {
 }
 
 // History button events
-document.getElementById('history-btn').addEventListener('click',()=>{ switchHistoryTab('solo'); showScreen('history-screen'); });
+document.getElementById('history-btn').addEventListener('click',()=>{ showScreen('history-screen'); switchHistoryTab('solo'); });
 document.getElementById('tab-solo').addEventListener('click',()=>switchHistoryTab('solo'));
 document.getElementById('tab-multi').addEventListener('click',()=>switchHistoryTab('multi'));
 document.getElementById('history-back-btn').addEventListener('click',()=>showScreen('home-screen'));
