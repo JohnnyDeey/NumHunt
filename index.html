@@ -388,7 +388,7 @@
   </div>
 
   <div class="game-arena">
-    <img id="shape-image" src="handbg.webp" alt="hunt shape" style="position:absolute;width:90%;height:90%;object-fit:contain;opacity:0.92;pointer-events:none;"/>
+    <img id="shape-image" src="handbg.webp" alt="hunt shape" style="position:absolute;width:100%;height:100%;object-fit:contain;opacity:0.92;pointer-events:none;"/>
     <div id="number-canvas"></div>
   </div>
 
@@ -435,7 +435,7 @@
     <div class="timer-display" id="solo-timer">0.0s</div>
   </div>
   <div class="game-arena" style="flex:1;width:100%">
-    <img id="solo-shape-image" src="handbg.webp" alt="hunt shape" style="position:absolute;width:90%;height:90%;object-fit:contain;opacity:0.92;pointer-events:none;"/>
+    <img id="solo-shape-image" src="handbg.webp" alt="hunt shape" style="position:absolute;width:100%;height:100%;object-fit:contain;opacity:0.92;pointer-events:none;"/>
     <div id="solo-canvas"></div>
   </div>
   <div class="game-footer" style="width:100%;justify-content:space-between">
@@ -633,7 +633,7 @@ function placeNumbers(containerEl, svgEl, seed, min, max, count, targetNumber, c
   const rng = seededRandom(seed * 999);
   const tokenSize = count >= 400 ? 8 : count >= 300 ? 9 : 10;
   containerEl.style.setProperty('--token-size', tokenSize+'px');
-  const padX = canvasW * 0.12;
+  const padX = canvasW * 0.10;
   const padY = canvasH * 0.075;
   const x1 = padX;
   const y1 = padY;
