@@ -1,3 +1,12 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/manifest.json", "destination": "/manifest.json" },
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/icon-192.png", "destination": "/icon-192.png" },
+    { "source": "/icon-512.png", "destination": "/icon-512.png" },
+    { "source": "/handbg.webp", "destination": "/handbg.webp" },
+    { "source": "/splash.svg", "destination": "/splash.svg" },
+    { "source": "/sounds/(.*)", "destination": "/sounds/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
