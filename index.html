@@ -249,34 +249,53 @@
 
 <!-- ═══════════════ PROFILE SCREEN ═══════════════ -->
 <div class="screen hidden" id="profile-screen">
-  <div class="card" style="max-width:360px;width:100%;">
-    <div style="text-align:center;margin-bottom:20px;">
-      <div id="profile-avatar-big" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;margin:0 auto 12px;"></div>
-      <div style="font-size:1.4rem;font-weight:900;" id="profile-name-display">—</div>
-      <div style="font-size:.8rem;color:var(--muted);">Member since <span id="profile-since">—</span></div>
+  <div class="card" style="max-width:380px;width:100%;">
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;margin-bottom:20px;background:var(--bg);border-radius:12px;padding:4px;">
+      <button id="profile-tab-1" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;background:var(--accent);color:#fff;transition:all .2s;">Profile</button>
+      <button id="profile-tab-2" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;">Edit</button>
     </div>
-    <div style="display:flex;gap:12px;margin-bottom:20px;">
-      <div style="flex:1;background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:1.6rem;font-weight:900;color:var(--accent);" id="profile-games">0</div>
-        <div style="font-size:.75rem;color:var(--muted);">Games</div>
+
+    <!-- TAB 1 — Summary -->
+    <div id="profile-panel-1">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div id="profile-avatar-big" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;margin:0 auto 12px;"></div>
+        <div style="font-size:1.4rem;font-weight:900;" id="profile-name-display">—</div>
+        <div style="font-size:.8rem;color:var(--muted);">Member since <span id="profile-since">—</span></div>
       </div>
-      <div style="flex:1;background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:1.6rem;font-weight:900;color:var(--gold);" id="profile-wins">0</div>
-        <div style="font-size:.75rem;color:var(--muted);">Wins</div>
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <div style="flex:1;background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:1.6rem;font-weight:900;color:var(--accent);" id="profile-games">0</div>
+          <div style="font-size:.75rem;color:var(--muted);">Games</div>
+        </div>
+        <div style="flex:1;background:var(--surface2);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:1.6rem;font-weight:900;color:var(--gold);" id="profile-wins">0</div>
+          <div style="font-size:.75rem;color:var(--muted);">Wins</div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn" id="profile-back-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <button class="btn" id="profile-logout-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#f5a623 0%,#d4891a 100%);color:#fff;box-shadow:0 6px 0 #9a6200;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
       </div>
     </div>
-    <div class="input-group">
-      <label>CHANGE PIN</label>
-      <input type="password" id="profile-new-pin" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric"/>
-    </div>
-    <div class="input-group">
-      <label>CURRENT PIN (to confirm)</label>
-      <input type="password" id="profile-current-pin" placeholder="Current PIN" maxlength="4" inputmode="numeric"/>
-    </div>
-    <button class="btn btn-secondary" style="width:100%;margin-bottom:10px;" id="profile-change-pin-btn"><i class="fa-solid fa-lock"></i> Update PIN</button>
-    <div class="row">
-      <button class="btn" id="profile-back-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
-      <button class="btn" id="profile-logout-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#f5a623 0%,#d4891a 100%);color:#fff;box-shadow:0 6px 0 #9a6200;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+
+    <!-- TAB 2 — Edit -->
+    <div id="profile-panel-2" style="display:none;">
+      <div class="help-text" style="margin-bottom:16px;text-align:center;">Fill only what you want to change.<br>Secret word is required to save.</div>
+      <div class="input-group">
+        <label>NEW USERNAME</label>
+        <input type="text" id="profile-new-username" placeholder="Leave blank to keep current" maxlength="16" autocomplete="off"/>
+      </div>
+      <div class="input-group">
+        <label>NEW PIN</label>
+        <input type="password" id="profile-new-pin" placeholder="Leave blank to keep current" maxlength="4" inputmode="numeric"/>
+      </div>
+      <div class="input-group">
+        <label>SECRET WORD <span style="color:var(--accent)">*required</span></label>
+        <input type="text" id="profile-secret-confirm" placeholder="Your secret word" maxlength="30" autocomplete="off"/>
+      </div>
+      <button class="btn" id="profile-save-btn" style="width:100%;background:linear-gradient(180deg,#4ade80 0%,#22c55e 100%);color:#fff;box-shadow:0 6px 0 #15803d;font-weight:800;padding:14px;margin-bottom:10px;"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+      <button class="btn" id="profile-edit-back-btn" style="width:100%;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
     </div>
   </div>
 </div>
@@ -1394,81 +1413,88 @@ document.getElementById('profile-logout-btn').addEventListener('click',()=>{
   showScreen('auth-screen');
 });
 
-document.getElementById('profile-avatar-big').insertAdjacentHTML('afterend', `
-  <div style="margin-bottom:12px;">
-    <div class="input-group" style="margin-bottom:8px;">
-      <label>NEW USERNAME</label>
-      <input type="text" id="profile-new-username" placeholder="New username" maxlength="16" style="width:100%;background:#111827;border:1.5px solid #2a2a3e;border-radius:10px;color:var(--text);font-size:1rem;padding:10px 14px;outline:none;"/>
-    </div>
-    <div class="input-group" style="margin-bottom:8px;">
-      <label>SECRET WORD (to confirm)</label>
-      <input type="text" id="profile-secret-confirm" placeholder="Your secret word" maxlength="30" style="width:100%;background:#111827;border:1.5px solid #2a2a3e;border-radius:10px;color:var(--text);font-size:1rem;padding:10px 14px;outline:none;"/>
-    </div>
-    <button class="btn" id="profile-change-username-btn" style="width:100%;background:linear-gradient(180deg,#4ade80 0%,#22c55e 100%);color:#fff;box-shadow:0 4px 0 #15803d;font-weight:800;padding:12px;"><i class="fa-solid fa-pen"></i> Change Username</button>
-  </div>
-`);
+// Profile tabs
+document.getElementById('profile-tab-1').addEventListener('click',()=>switchProfileTab(1));
+document.getElementById('profile-tab-2').addEventListener('click',()=>switchProfileTab(2));
 
-document.getElementById('profile-change-username-btn').addEventListener('click', async()=>{
+function switchProfileTab(tab) {
+  document.getElementById('profile-panel-1').style.display = tab===1 ? 'block' : 'none';
+  document.getElementById('profile-panel-2').style.display = tab===2 ? 'block' : 'none';
+  document.getElementById('profile-tab-1').style.background = tab===1 ? 'var(--accent)' : 'transparent';
+  document.getElementById('profile-tab-1').style.color = tab===1 ? '#fff' : 'var(--muted)';
+  document.getElementById('profile-tab-2').style.background = tab===2 ? 'var(--accent)' : 'transparent';
+  document.getElementById('profile-tab-2').style.color = tab===2 ? '#fff' : 'var(--muted)';
+}
+
+document.getElementById('profile-back-btn').addEventListener('click',()=>showScreen('home-screen'));
+document.getElementById('profile-edit-back-btn').addEventListener('click',()=>switchProfileTab(1));
+document.getElementById('profile-logout-btn').addEventListener('click',()=>{
+  localStorage.removeItem('numhunt_username');
+  localStorage.removeItem('numhunt_uid');
+  localStorage.removeItem('numhunt_name');
+  localStorage.removeItem('numhunt_color');
+  localStorage.removeItem('numhunt_screen');
+  myUid=null; myName='';
+  showScreen('auth-screen');
+});
+
+document.getElementById('profile-save-btn').addEventListener('click', async()=>{
   const newUsername = document.getElementById('profile-new-username').value.trim();
-  const secretWord = document.getElementById('profile-secret-confirm').value.trim().toLowerCase();
-  if(!newUsername){toast('Enter a new username');return;}
-  if(!secretWord){toast('Enter your secret word');return;}
-  if(newUsername.toLowerCase()===myUid){toast('That is already your username');return;}
-  // Verify secret word
+  const newPin = document.getElementById('profile-new-pin').value.trim();
+  const secret = document.getElementById('profile-secret-confirm').value.trim().toLowerCase();
+  if(!secret){toast('Enter your secret word');return;}
+  if(!newUsername && !newPin){toast('Fill in at least one field to change');return;}
+  if(newPin && (newPin.length!==4||isNaN(newPin))){toast('PIN must be 4 digits');return;}
+
+  // Verify secret
   const oldRef = doc(db,'users',myUid);
   const oldSnap = await getDoc(oldRef);
   if(!oldSnap.exists()){toast('Profile not found');return;}
-  if(oldSnap.data().secret !== hashPin(secretWord)){toast('Wrong secret word');return;}
-  // Check if taken
-  const newRef = doc(db,'users',newUsername.toLowerCase());
-  const snap = await getDoc(newRef);
-  if(snap.exists()){toast('Username already taken');return;}
-  // Get current data
-  const oldData = oldSnap.data();
-  // Copy profile to new doc
-  await setDoc(newRef,{...oldData, username:newUsername});
-  // Copy history subcollection
-  try {
-    const { getDocs, collection: col, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    const histSnap = await getDocs(col(db, 'users', myUid, 'history'));
-    for(const d of histSnap.docs) {
-      await setDoc(doc(db,'users',newUsername.toLowerCase(),'history',d.id), d.data());
-    }
-    // Delete old history
-    for(const d of histSnap.docs) {
-      await deleteDoc(doc(db,'users',myUid,'history',d.id));
-    }
-    // Delete old profile
-    await deleteDoc(oldRef);
-  } catch(e){ console.warn('History migration failed',e); }
-  // Update localStorage
-  myUid = newUsername.toLowerCase();
-  myName = newUsername;
-  localStorage.setItem('numhunt_uid', myUid);
-  localStorage.setItem('numhunt_name', myName);
-  localStorage.setItem('numhunt_username', newUsername);
-  // Update UI
-  document.getElementById('home-username').textContent = myName;
-  document.getElementById('home-avatar').textContent = myName[0].toUpperCase();
-  document.getElementById('profile-name-display').textContent = newUsername;
-  document.getElementById('profile-new-username').value = '';
-  toast('Username updated to '+newUsername+'! ✅');
+  if(oldSnap.data().secret !== hashPin(secret)){toast('Wrong secret word');return;}
+
+  const updates = {};
+  if(newPin) updates.pin = hashPin(newPin);
+
+  if(newUsername && newUsername.toLowerCase()!==myUid) {
+    // Check username taken
+    const newRef = doc(db,'users',newUsername.toLowerCase());
+    const snap = await getDoc(newRef);
+    if(snap.exists()){toast('Username already taken');return;}
+    // Copy profile to new doc
+    const oldData = oldSnap.data();
+    await setDoc(newRef,{...oldData, username:newUsername, ...updates});
+    // Copy history
+    try {
+      const { getDocs, collection: col } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      const histSnap = await getDocs(col(db,'users',myUid,'history'));
+      for(const d of histSnap.docs) {
+        await setDoc(doc(db,'users',newUsername.toLowerCase(),'history',d.id), d.data());
+      }
+      await deleteDoc(oldRef);
+    } catch(e){ console.warn('History migration failed',e); }
+    // Update local
+    myUid = newUsername.toLowerCase();
+    myName = newUsername;
+    localStorage.setItem('numhunt_uid', myUid);
+    localStorage.setItem('numhunt_name', myName);
+    localStorage.setItem('numhunt_username', newUsername);
+    document.getElementById('home-username').textContent = myName;
+    document.getElementById('home-avatar').textContent = myName[0].toUpperCase();
+  } else if(Object.keys(updates).length > 0) {
+    await updateDoc(oldRef, updates);
+  }
+
+  // Clear fields
+  document.getElementById('profile-new-username').value='';
+  document.getElementById('profile-new-pin').value='';
+  document.getElementById('profile-secret-confirm').value='';
+  toast('Profile updated! ✅');
+  switchProfileTab(1);
+  showProfile();
 });
 
-document.getElementById('profile-change-pin-btn').addEventListener('click', async()=>{
-  const newPin = document.getElementById('profile-new-pin').value.trim();
-  const currentPin = document.getElementById('profile-current-pin').value.trim();
-  if(newPin.length!==4||isNaN(newPin)){toast('New PIN must be 4 digits');return;}
-  if(!currentPin){toast('Enter your current PIN');return;}
-  const ref = doc(db,'users',myUid);
-  const snap = await getDoc(ref);
-  if(!snap.exists()){toast('Profile not found');return;}
-  if(snap.data().pin!==hashPin(currentPin)){toast('Wrong current PIN');return;}
-  await updateDoc(ref,{pin:hashPin(newPin)});
-  toast('PIN updated!');
-  document.getElementById('profile-new-pin').value='';
-  document.getElementById('profile-current-pin').value='';
-});
+
+
 
 async function showProfile() {
   showScreen('profile-screen');
