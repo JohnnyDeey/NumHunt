@@ -32,8 +32,9 @@
   html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden;}
 
   /* ── SCREENS ── */
-  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transition:opacity .3s;overflow-y:auto;}
-  .screen.hidden{display:none!important;opacity:0;pointer-events:none;}
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transition:opacity .2s;overflow-y:auto;opacity:0;}
+  .screen.hidden{opacity:0;pointer-events:none;visibility:hidden;}
+  .screen.visible{opacity:1;visibility:visible;}
 
   /* ── HOME ── */
   #home-screen{background:radial-gradient(ellipse at 60% 40%,#1a1a3e 0%,var(--bg) 70%);}
@@ -294,7 +295,7 @@
     <div class="divider">or</div>
     <button class="btn btn-secondary" id="join-room-btn"><i class="fa-solid fa-door-open"></i> Join Room</button>
     <button class="btn btn-ghost" id="solo-btn"><i class="fa-solid fa-user"></i> Solo Practice</button>
-    <button class="btn" id="history-btn" style="min-width:160px;padding:12px 24px;background:linear-gradient(180deg,#f5c842 0%,#d4a017 100%);color:#1a1a00;box-shadow:0 6px 0 #9a7200;font-weight:800;display:none;"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
+    <button class="btn" id="history-btn" style="min-width:160px;padding:12px 24px;background:linear-gradient(180deg,#f5c842 0%,#d4a017 100%);color:#1a1a00;box-shadow:0 6px 0 #9a7200;font-weight:800;"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
   </div>
 </div>
 
@@ -521,6 +522,9 @@
   </div>
 </div>
 
+<!-- Loading bar -->
+<div id="loading-bar" style="position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent),var(--gold));z-index:9999;transition:width .3s ease;"></div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -531,9 +535,7 @@ import {
   getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot,
   collection, serverTimestamp, arrayUnion, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getAuth, signInAnonymously, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 
 // ═══════════════════════════════
 // 🔥 FIREBASE CONFIG — replace with yours
@@ -549,13 +551,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
+
 
 // ═══════════════════════════════
 // STATE
 // ═══════════════════════════════
 let myUid = null;
-let myName = localStorage.getItem('numhunt_name') || '';
+let myName = '';
 let currentRoom = null;
 let roomUnsub = null;
 let isHost = false;
@@ -586,8 +588,16 @@ function toast(msg, dur=2500) {
 }
 
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.classList.add('hidden');
+    s.classList.remove('visible');
+  });
+  const el = document.getElementById(id);
+  el.classList.remove('hidden');
+  requestAnimationFrame(()=>el.classList.add('visible'));
+  if(!['game-screen','solo-screen'].includes(id)) {
+    localStorage.setItem('numhunt_screen', id);
+  }
 }
 
 function randomInt(min, max) {
@@ -746,13 +756,7 @@ function executePendingAction() {
   pendingAction = null;
 }
 
-// ═══════════════════════════════
-// AUTH
-// ═══════════════════════════════
-onAuthStateChanged(auth, user=>{
-  if(user) { myUid=user.uid; }
-  else { signInAnonymously(auth).catch(e=>console.warn('Auth fail',e)); }
-});
+
 
 // ═══════════════════════════════
 // HOME BUTTONS
@@ -1057,6 +1061,18 @@ function stopBgMusic() {
   bgAudios.length = 0;
 }
 
+// ═══════════════════════════════
+// PULL TO REFRESH
+// ═══════════════════════════════
+let touchStartY = 0;
+document.addEventListener('touchstart', e=>{ touchStartY = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchend', e=>{
+  const diff = e.changedTouches[0].clientY - touchStartY;
+  if(diff > 100 && window.scrollY === 0) {
+    toast('Refreshing…');
+    setTimeout(()=>location.reload(), 500);
+  }
+}, {passive:true});
 
 // ═══════════════════════════════
 // PWA SERVICE WORKER
@@ -1409,11 +1425,22 @@ document.getElementById('profile-change-username-btn').addEventListener('click',
   if(snap.exists()){toast('Username already taken');return;}
   // Get current data
   const oldData = oldSnap.data();
-  // Copy to new doc
+  // Copy profile to new doc
   await setDoc(newRef,{...oldData, username:newUsername});
-  // Delete old doc
-  const { deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-  await deleteDoc(oldRef);
+  // Copy history subcollection
+  try {
+    const { getDocs, collection: col, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const histSnap = await getDocs(col(db, 'users', myUid, 'history'));
+    for(const d of histSnap.docs) {
+      await setDoc(doc(db,'users',newUsername.toLowerCase(),'history',d.id), d.data());
+    }
+    // Delete old history
+    for(const d of histSnap.docs) {
+      await deleteDoc(doc(db,'users',myUid,'history',d.id));
+    }
+    // Delete old profile
+    await deleteDoc(oldRef);
+  } catch(e){ console.warn('History migration failed',e); }
   // Update localStorage
   myUid = newUsername.toLowerCase();
   myName = newUsername;
@@ -1467,22 +1494,34 @@ function loadHomeProfile() {
     document.getElementById('home-username').textContent = name;
     document.getElementById('welcome-block').style.display = 'block';
   }
-  if(getHistory().length>0) document.getElementById('history-btn').style.display='flex';
+  
 }
 
 // Check if already logged in on this device
+// Show // Show loading bar on initial page load only
+const bar = document.getElementById('loading-bar');
+bar.style.width = '80%';
+setTimeout(()=>{ bar.style.width='100%'; setTimeout(()=>{ bar.style.width='0'; }, 300); }, 400);
+
 function checkAutoLogin() {
+  const savedUid = localStorage.getItem('numhunt_uid');
+  const savedName = localStorage.getItem('numhunt_name');
   const savedUsername = localStorage.getItem('numhunt_username');
-  if(savedUsername) {
-    myUid = localStorage.getItem('numhunt_uid');
-    myName = localStorage.getItem('numhunt_name');
+  if(savedUid && savedUsername) {
+    myUid = savedUid;
+    myName = savedName || savedUsername;
     loadHomeProfile();
-    showScreen('home-screen');
+    const lastScreen = localStorage.getItem('numhunt_screen') || 'home-screen';
+    const safeScreens = ['home-screen','history-screen','profile-screen','solo-setup-screen'];
+    showScreen(safeScreens.includes(lastScreen) ? lastScreen : 'home-screen');
   } else {
+    myUid = null;
+    myName = '';
     showScreen('auth-screen');
   }
 }
 checkAutoLogin();
+
 const HISTORY_KEY = 'numhunt_history';
 
 async function saveGameToHistory(data, isSolo=false) {
@@ -1526,7 +1565,7 @@ async function saveGameToHistory(data, isSolo=false) {
       totalWins: isMyWin ? ((await getDoc(uRef)).data()?.totalWins + 1 || 1) : ((await getDoc(uRef)).data()?.totalWins || 0)
     });
   } catch(e){ console.warn('History save failed', e); }
-  document.getElementById('history-btn').style.display = 'flex';
+  
 }
 
 async function saveSoloToHistory() {
@@ -1554,7 +1593,7 @@ async function saveSoloToHistory() {
       totalWins: (uSnap.data()?.totalWins||0) + 1
     });
   } catch(e){ console.warn('Solo history save failed', e); }
-  document.getElementById('history-btn').style.display = 'flex';
+  
 }
 
 function getHistory() {
@@ -1565,7 +1604,7 @@ async function getFirestoreHistory() {
   if(!myUid) return [];
   try {
     const { getDocs, collection: col, orderBy, query, limit } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    const q = query(col(db,'users',myUid,'history'), orderBy('id','desc'), limit(100));
+    const q = query(col(db,'users',myUid,'history'), orderBy('date','desc'), limit(100));
     const snap = await getDocs(q);
     return snap.docs.map(d=>d.data());
   } catch(e){ return []; }
@@ -1613,7 +1652,13 @@ async function renderHistory() {
   const empty = document.getElementById('history-empty');
   el.innerHTML = '';
 
-  if(!list.length) { empty.style.display='block'; return; }
+  if(!list.length) {
+    empty.style.display='block';
+    empty.innerHTML = historyTab==='solo'
+      ? '🧍 No solo games yet.<br>Start a practice to see history here.'
+      : '🎮 No multiplayer games yet.<br>Create or join a room to play.';
+    return;
+  }
   empty.style.display='none';
 
   list.forEach(g=>{
