@@ -72,7 +72,7 @@
   .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
   /* ── GAME SCREEN ── */
-  #game-screen{padding:0;background:var(--bg);justify-content:flex-start;}
+  #game-screen{padding:0;background:#f5f0e8;justify-content:flex-start;}
   .game-header{width:100%;background:var(--surface);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10;}
   .target-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
   .target-number{font-size:1.8rem;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1;}
@@ -113,7 +113,7 @@
   .trophy{font-size:1.2rem;}
 
   /* ── SOLO SCREEN ── */
-  #solo-screen{background:var(--bg);}
+  #solo-screen{background:#f5f0e8;}
   .solo-header{width:100%;background:var(--surface);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 
   /* ── TOAST ── */
@@ -662,12 +662,23 @@ function placeNumbers(containerEl, svgEl, seed, min, max, count, targetNumber, c
   const rng = seededRandom(seed * 999);
   const tokenSize = count >= 400 ? 8 : count >= 300 ? 9 : 10;
   containerEl.style.setProperty('--token-size', tokenSize+'px');
-  const padX = canvasW * 0.10;
-  const padY = canvasH * 0.075;
-  const x1 = padX;
-  const y1 = padY;
-  const x2 = canvasW - padX;
-  const y2 = canvasH - padY;
+  const img = document.getElementById('solo-shape-image') || document.getElementById('shape-image');
+  let x1, y1, x2, y2;
+  if(img && img.complete && img.naturalWidth) {
+    const arena = img.parentElement.getBoundingClientRect();
+    const r = img.getBoundingClientRect();
+    const insetX = r.width * 0.10;
+    const insetY = r.height * 0.08;
+    x1 = (r.left - arena.left) + insetX;
+    y1 = (r.top - arena.top) + insetY;
+    x2 = (r.left - arena.left) + r.width - insetX;
+    y2 = (r.top - arena.top) + r.height - insetY;
+  } else {
+    const padX = canvasW * 0.10;
+    const padY = canvasH * 0.075;
+    x1 = padX; y1 = padY;
+    x2 = canvasW - padX; y2 = canvasH - padY;
+  }
   const pathPts = [[x1,y1],[x2,y1],[x2,y2],[x1,y2]];
 
   // Generate unique numbers pool
@@ -940,7 +951,9 @@ function startGameFromRoomData(data) {
   canvas.style.height = H+'px';
   canvas.style.position = 'absolute';
 
-  placeNumbers(canvas, svgEl, data.seed, data.settings.min, data.settings.max, data.settings.density, data.currentTarget, W, H);
+  const imgEl2 = document.getElementById('shape-image');
+  const doPlace2 = ()=>placeNumbers(canvas, null, data.seed, data.settings.min, data.settings.max, data.settings.density, data.currentTarget, W, H);
+  if(imgEl2.complete) doPlace2(); else imgEl2.onload = doPlace2;
 
   // Attach touch/click events
   canvas.querySelectorAll('.num-token').forEach(el=>{
@@ -1185,7 +1198,9 @@ function startSoloRound() {
   canvas.style.position='absolute';
   canvas.style.top='0';
   canvas.style.left='0';
-  placeNumbers(canvas,null,seed,min,max,density,target,W,H);
+  const imgEl = document.getElementById('solo-shape-image');
+  const doPlace = ()=>placeNumbers(canvas,null,seed,min,max,density,target,W,H);
+  if(imgEl.complete) doPlace(); else imgEl.onload = doPlace;
 
   // Timer
   clearInterval(soloTimerInterval);
@@ -1217,6 +1232,11 @@ function handleSoloTap(e,target) {
       soloBest=ms;
       localStorage.setItem('numhunt_solo_best',ms);
       document.getElementById('solo-best').textContent=formatTime(ms);
+      // Sync best to Firestore
+      if(myUid) {
+        const uRef = doc(db,'users',myUid);
+        updateDoc(uRef,{ soloBest: ms }).catch(()=>{});
+      }
     }
     toast(`Found in ${formatTime(ms)}! ${soloRound<soloTotalRounds?'Next round…':'Game over!'}`, 2000);
     setTimeout(()=>{
@@ -1502,6 +1522,12 @@ async function showProfile() {
   const snap = await getDoc(ref);
   if(!snap.exists()) return;
   const d = snap.data();
+  // Sync best time from Firestore
+  if(d.soloBest) {
+    soloBest = d.soloBest;
+    localStorage.setItem('numhunt_solo_best', d.soloBest);
+    document.getElementById('solo-best').textContent = formatTime(d.soloBest);
+  }
   document.getElementById('profile-avatar-big').textContent = myName[0].toUpperCase();
   document.getElementById('profile-avatar-big').style.background = d.avatarColor||'var(--accent)';
   document.getElementById('profile-name-display').textContent = d.username;
@@ -1520,7 +1546,16 @@ function loadHomeProfile() {
     document.getElementById('home-username').textContent = name;
     document.getElementById('welcome-block').style.display = 'block';
   }
-  
+  if(myUid) {
+    getDoc(doc(db,'users',myUid)).then(snap=>{
+      if(snap.exists() && snap.data().soloBest) {
+        soloBest = snap.data().soloBest;
+        localStorage.setItem('numhunt_solo_best', soloBest);
+        const el = document.getElementById('solo-best');
+        if(el) el.textContent = formatTime(soloBest);
+      }
+    }).catch(()=>{});
+  }
 }
 
 // Check if already logged in on this device
