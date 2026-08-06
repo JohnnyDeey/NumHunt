@@ -80,7 +80,8 @@
   .timer-display.urgent{color:var(--accent);}
   .round-info{font-size:.8rem;color:var(--muted);text-align:center;}
   .game-arena{flex:1;position:relative;overflow:hidden;width:100%;display:flex;align-items:center;justify-content:center;}
-  #number-canvas{position:relative;width:100%;height:100%;}
+  #number-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;}
+  #number-canvas .num-token{pointer-events:auto;}
   .num-token{position:absolute;transform:translate(-50%,-50%);font-size:var(--token-size,11px);color:rgba(0,0,0,0.85);font-weight:700;user-select:none;cursor:pointer;transition:color .15s,transform .15s;line-height:1;font-variant-numeric:tabular-nums;border-radius:3px;padding:1px 2px;}
   .num-token:hover{color:#fff;}
   .num-token.found{color:var(--green)!important;font-weight:900;text-shadow:0 0 12px var(--green);transform:translate(-50%,-50%) scale(1.4);pointer-events:none;z-index:5;}
@@ -310,10 +311,10 @@
   <div class="logo">NumHunt</div>
   <div class="tagline">find the number — beat the clock</div>
   <div class="home-btns">
-    <button class="btn btn-primary" id="create-room-btn"><i class="fa-solid fa-gamepad"></i> Create Room</button>
+    <button class="btn btn-primary" id="create-room-btn"><i class="fa-solid fa-gamepad"></i> Multiplayer</button>
     <div class="divider">or</div>
     <button class="btn btn-secondary" id="join-room-btn"><i class="fa-solid fa-door-open"></i> Join Room</button>
-    <button class="btn btn-ghost" id="solo-btn"><i class="fa-solid fa-user"></i> Solo Practice</button>
+    <button class="btn btn-ghost" id="solo-btn"><i class="fa-solid fa-user"></i> Solo Player</button>
     <button class="btn" id="history-btn" style="min-width:160px;padding:12px 24px;background:linear-gradient(180deg,#f5c842 0%,#d4a017 100%);color:#1a1a00;box-shadow:0 6px 0 #9a7200;font-weight:800;"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
   </div>
 </div>
@@ -342,7 +343,10 @@
       <div class="card-title" style="margin:0">Room</div>
       <span class="pill" id="lobby-mode-pill">HOST</span>
     </div>
-    <div class="room-code-display" id="lobby-room-code">——</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+      <div class="room-code-display" id="lobby-room-code">——</div>
+      <button id="copy-code-btn" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.9rem;padding:4px;" title="Copy code"><i class="fa-solid fa-copy"></i></button>
+    </div>
     <div class="help-text" style="margin-bottom:16px">Share this code so others can join</div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -380,14 +384,17 @@
       </div>
       <div class="spacer"></div>
       <div class="row" style="margin-top:8px;">
-        <button class="btn" id="lobby-leave-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-right-from-bracket"></i> Leave</button>
+        <button class="btn" id="lobby-leave-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
         <button class="btn" id="start-game-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#4ade80 0%,#22c55e 100%);color:#fff;box-shadow:0 6px 0 #15803d;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-rocket"></i> Start</button>
       </div>
     </div>
 
     <!-- Guest view -->
-    <div id="guest-settings" class="hidden" style="text-align:center;color:var(--muted);font-size:.9rem;padding:10px 0;">
-      Waiting for host to start the game…
+    <div id="guest-settings" style="text-align:center;padding:20px 0;display:none;">
+      <div style="font-size:3rem;margin-bottom:12px;">⏳</div>
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:8px;">Waiting for host</div>
+      <div style="color:var(--muted);font-size:.9rem;margin-bottom:20px;">The host will start the game soon…</div>
+      <button class="btn" id="guest-leave-btn" style="min-width:160px;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 24px;"><i class="fa-solid fa-right-from-bracket"></i> Leave Room</button>
     </div>
 
     
@@ -407,28 +414,17 @@
     <div class="timer-display" id="timer-display">0.0s</div>
   </div>
 
-  <div class="game-arena">
+  <div class="game-arena" style="flex:1;width:100%;position:relative;">
     <img id="shape-image" src="handbg.webp" alt="hunt shape" style="position:absolute;width:100%;height:100%;object-fit:contain;opacity:0.92;pointer-events:none;"/>
-    <div id="number-canvas"></div>
+    <div id="number-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;"></div>
   </div>
 
   <div class="game-footer">
     <div class="players-inline" id="players-status"></div>
-    <button class="btn btn-ghost" style="font-size:.75rem;padding:6px 12px" id="game-leave-btn">Leave</button>
+    <button class="btn btn-ghost" style="font-size:.75rem;padding:6px 12px;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);box-shadow:0 4px 0 #880000;" id="game-leave-btn">⏹ Stop</button>
   </div>
 
-  <!-- Found banner (hidden until someone finds it) -->
-  <div class="found-banner hidden" id="found-banner">
-    <div class="found-card">
-      <div class="found-emoji">🎯</div>
-      <div class="found-name" id="found-name">—</div>
-      <div style="color:var(--muted);font-size:.85rem;margin-bottom:4px">found it in</div>
-      <div class="found-time" id="found-time">—</div>
-      <div style="color:var(--muted);font-size:.8rem;margin-bottom:16px" id="found-round-label">—</div>
-      <button class="btn btn-primary" id="next-round-btn" style="display:none;width:100%">Next Round →</button>
-      <div style="color:var(--muted);font-size:.8rem" id="waiting-next">Waiting for host…</div>
-    </div>
-  </div>
+  
 </div>
 
 <!-- ═══════════════ RESULTS SCREEN ═══════════════ -->
@@ -438,7 +434,8 @@
   <div class="score-list" id="score-list"></div>
   <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px">
     <button class="btn btn-primary" id="play-again-btn"><i class="fa-solid fa-rotate"></i> Play Again</button>
-        <button class="btn btn-ghost" id="results-home-btn"><i class="fa-solid fa-house"></i> Home</button>
+    <div id="play-again-status" style="text-align:center;color:var(--muted);font-size:.85rem;display:none;"></div>
+    <button class="btn btn-ghost" id="results-home-btn"><i class="fa-solid fa-house"></i> Home</button>
   </div>
 </div>
 
@@ -456,18 +453,19 @@
   </div>
   <div class="game-arena" style="flex:1;width:100%">
     <img id="solo-shape-image" src="handbg.webp" alt="hunt shape" style="position:absolute;width:100%;height:100%;object-fit:contain;opacity:0.92;pointer-events:none;"/>
-    <div id="solo-canvas"></div>
+    <div id="solo-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;"></div>
+    <div id="multi-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;"></div>
   </div>
   <div class="game-footer" style="width:100%;justify-content:space-between">
     <div style="font-size:.8rem;color:var(--muted)">Best: <span id="solo-best">—</span></div>
-    <button class="btn btn-ghost" style="font-size:.75rem;padding:6px 12px" id="solo-leave-btn">⏹ Stop</button>
+    <button class="btn btn-ghost" style="font-size:.75rem;padding:6px 12px;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);box-shadow:0 4px 0 #880000;" id="solo-leave-btn">⏹ Stop</button>
   </div>
 </div>
 
 <!-- ═══════════════ SOLO SETUP ═══════════════ -->
 <div class="screen hidden" id="solo-setup-screen">
   <div class="card">
-    <div class="card-title">🧍 Solo Practice</div>
+    <div class="card-title">🧍 Solo Player</div>
     <div class="settings-grid">
       <div class="input-group" style="margin:0">
         <label>MIN NUMBER</label>
@@ -479,16 +477,16 @@
       </div>
       
       <div class="input-group" style="margin:0">
-        <label>DENSITY</label>
-        <select id="solo-density">
-          <option value="200">Normal</option>
-          <option value="350" selected>Dense</option>
-          <option value="500">Packed</option>
-        </select>
-      </div>
-      <div class="input-group" style="margin:0">
         <label>ROUNDS</label>
         <input type="number" id="solo-rounds" placeholder="e.g. 5" min="1" max="50"/>
+      </div>
+      <div class="input-group" style="margin:0">
+        <label>DENSITY</label>
+        <select id="solo-density">
+          <option value="400">Normal</option>
+          <option value="600" selected>Dense</option>
+          <option value="800">Packed</option>
+        </select>
       </div>
     </div>
     <div class="spacer"></div>
@@ -544,6 +542,21 @@
 <!-- Loading bar -->
 <div id="loading-bar" style="position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent),var(--gold));z-index:9999;transition:width .3s ease;"></div>
 
+<!-- Play Again Modal -->
+<div class="modal-overlay hidden" id="play-again-modal">
+  <div class="modal">
+    <div class="modal-title">🔄 Play Again?</div>
+    <div class="modal-sub" id="play-again-modal-text">Someone wants to play again!</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <div id="play-again-countdown" style="text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:12px;width:100%;">Auto-declining in 30s…</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="decline-play-again-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#ff4444 0%,#cc0000 100%);color:#fff;box-shadow:0 6px 0 #880000;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-xmark"></i> Decline</button>
+      <button class="btn" id="accept-play-again-btn" style="flex:1;min-width:0;background:linear-gradient(180deg,#4ade80 0%,#22c55e 100%);color:#fff;box-shadow:0 6px 0 #15803d;font-weight:800;padding:12px 8px;"><i class="fa-solid fa-check"></i> Accept</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -577,6 +590,7 @@ const db = getFirestore(app);
 // ═══════════════════════════════
 let myUid = null;
 let myName = '';
+
 let currentRoom = null;
 let roomUnsub = null;
 let isHost = false;
@@ -662,7 +676,9 @@ function placeNumbers(containerEl, svgEl, seed, min, max, count, targetNumber, c
   const rng = seededRandom(seed * 999);
   const tokenSize = count >= 400 ? 8 : count >= 300 ? 9 : 10;
   containerEl.style.setProperty('--token-size', tokenSize+'px');
-  const img = document.getElementById('solo-shape-image') || document.getElementById('shape-image');
+  const img = containerEl.id === 'solo-canvas' 
+    ? document.getElementById('solo-shape-image') 
+    : document.getElementById('shape-image');
   let x1, y1, x2, y2;
   if(img && img.complete && img.naturalWidth) {
     const arena = img.parentElement.getBoundingClientRect();
@@ -758,9 +774,11 @@ function placeNumbers(containerEl, svgEl, seed, min, max, count, targetNumber, c
 // TIMER
 // ═══════════════════════════════
 function startTimer(displayEl) {
+  
   timerStart = Date.now();
   clearInterval(timerInterval);
   timerInterval = setInterval(()=>{
+    
     const ms = Date.now()-timerStart;
     const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);displayEl.textContent=(h?h+'h ':'')+(m?m+'m ':'')+s+'s';
     displayEl.classList.toggle('urgent', ms>30000);
@@ -769,6 +787,7 @@ function startTimer(displayEl) {
 
 function stopTimer() {
   clearInterval(timerInterval);
+  clearInterval(soloTimerInterval);
   return timerStart ? Date.now()-timerStart : 0;
 }
 
@@ -800,6 +819,13 @@ document.getElementById('solo-btn').addEventListener('click',()=>showScreen('sol
 // ═══════════════════════════════
 async function createRoom() {
   if(!myUid){toast('Connecting… try again');return;}
+  // Delete any previous room created by this host
+  try {
+    const { getDocs, collection: col, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const q = query(col(db,'rooms'), where('hostUid','==',myUid));
+    const snap = await getDocs(q);
+    for(const d of snap.docs) await deleteDoc(doc(db,'rooms',d.id));
+  } catch(e){ console.warn('Cleanup failed',e); }
   const code = genRoomCode();
   const roomRef = doc(db,'rooms',code);
   await setDoc(roomRef, {
@@ -840,8 +866,8 @@ document.getElementById('join-confirm-btn').addEventListener('click',async()=>{
 function joinLobby(code) {
   showScreen('lobby-screen');
   document.getElementById('lobby-room-code').textContent = code;
-  document.getElementById('host-settings').classList.toggle('hidden', !isHost);
-  document.getElementById('guest-settings').classList.toggle('hidden', isHost);
+  document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
+  document.getElementById('guest-settings').style.display = isHost ? 'none' : 'block';
   document.getElementById('lobby-mode-pill').textContent = isHost ? 'HOST' : 'GUEST';
 
   if(roomUnsub) roomUnsub();
@@ -883,33 +909,86 @@ function renderLobbyPlayers(players, hostUid) {
   });
 });
 
+document.addEventListener('keydown', (e)=>{
+  const active = document.querySelector('.screen:not(.hidden)');
+  if(!active) return;
+  const id = active.id;
+  if(e.key === 'Enter') {
+    if(id === 'lobby-screen') document.getElementById('start-game-btn').click();
+    if(id === 'join-screen') document.getElementById('join-confirm-btn').click();
+    if(id === 'auth-screen') {
+      const loginPanel = document.getElementById('auth-login-panel');
+      if(loginPanel.style.display !== 'none') document.getElementById('login-btn').click();
+      else document.getElementById('create-profile-btn').click();
+    }
+    if(id === 'solo-setup-screen') document.getElementById('solo-start-btn').click();
+    if(id === 'forgot-screen') document.getElementById('forgot-confirm-btn').click();
+  }
+  if(e.key === 'Escape') {
+    if(id === 'lobby-screen') document.getElementById('lobby-leave-btn').click();
+    if(id === 'join-screen') document.getElementById('join-back-btn').click();
+    if(id === 'solo-setup-screen') document.getElementById('solo-setup-back-btn').click();
+    if(id === 'forgot-screen') document.getElementById('forgot-back-btn').click();
+    if(id === 'history-screen') document.getElementById('history-back-btn').click();
+    if(id === 'profile-screen') document.getElementById('profile-back-btn').click();
+  }
+});
+
 document.getElementById('start-game-btn').addEventListener('click', async()=>{
   if(!isHost||!currentRoom) return;
   const min = parseInt(document.getElementById('range-min').value);
   const max = parseInt(document.getElementById('range-max').value);
-  if(!min||!max||!rounds){toast('Please fill in all settings');return;}
-  if(min>=max){toast('Min must be less than Max');return;}
   const rounds = parseInt(document.getElementById('rounds-select').value);
+  if(!min||!max||!rounds){toast('Please fill in all settings ⚠️');return;}
+  if(min>=max){toast('Min must be less than Max');return;}
   const density = 600;
-  const seed = Date.now();
-  const target = randomInt(min,max);
+  // Pre-generate all rounds with unique targets
+  const range = max - min + 1;
+  const pool = Array.from({length: range}, (_,i) => min+i);
+  // Fisher-Yates shuffle
+  for(let i=pool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  const targets = pool.slice(0, Math.min(rounds, range));
+  const roundData = targets.map((target,i)=>({ seed: Date.now()+i*1000, target }));
   const ref = doc(db,'rooms',currentRoom);
   await updateDoc(ref,{
     status:'playing',
-    settings:{ min,max,rounds,density,shape },
-    currentRound:1,
+    settings:{ min,max,rounds,density },
     totalRounds:rounds,
-    seed,
-    currentTarget:target,
-    roundResults:{},
-    startedAt:serverTimestamp()
+    rounds: roundData,
+    startedAt:serverTimestamp(),
+    winner: null
   });
 });
 
-document.getElementById('lobby-leave-btn').addEventListener('click', leaveRoom);
+document.getElementById('copy-code-btn').addEventListener('click',()=>{
+  const code = document.getElementById('lobby-room-code').textContent;
+  navigator.clipboard.writeText(code).then(()=>toast('Code copied!')).catch(()=>toast(code));
+});
 
+document.getElementById('lobby-leave-btn').addEventListener('click', leaveRoom);
+document.getElementById('guest-leave-btn').addEventListener('click', leaveRoom);
+
+document.getElementById('game-leave-btn').addEventListener('click', ()=>{
+  const btn = document.getElementById('game-leave-btn');
+  if(btn.dataset.stopped === 'true') {
+    btn.dataset.stopped = 'false';
+    btn.textContent = '⏹ Stop';
+    leaveRoom();
+  } else {
+    clearInterval(timerInterval);
+    btn.dataset.stopped = 'true';
+    btn.textContent = '← Exit';
+  }
+});
 async function leaveRoom() {
+  clearInterval(timerInterval);
+  clearInterval(autoAdvanceTimer);
+  stopBgMusic();
   if(roomUnsub) roomUnsub();
+  roomUnsub = null;
   if(currentRoom && myUid) {
     try {
       const ref = doc(db,'rooms',currentRoom);
@@ -926,73 +1005,145 @@ async function leaveRoom() {
 let currentGameData = null;
 let hasFoundThisRound = false;
 
+let myCurrentRound = 0;
+let myScoresLocal = [];
+let myRoundStart = null;
+let autoAdvanceTimer = null;
+
+function loadRound() {
+  const data = currentGameData;
+  if(myCurrentRound >= data.rounds.length) {
+    finishGame();
+    return;
+  }
+  hasFoundThisRound = false;
+  wrongAttempts = 0;
+  const round = data.rounds[myCurrentRound];
+  showScreen('game-screen');
+  document.getElementById('target-display').textContent = round.target;
+  document.getElementById('round-display').textContent = `Round ${myCurrentRound+1} / ${totalRounds}`;
+  const arena = document.getElementById('game-screen').querySelector('.game-arena');
+  document.getElementById('shape-image').src = 'handbg.webp';
+  const canvas = document.getElementById('number-canvas');
+  canvas.style.pointerEvents = 'auto';
+  const imgEl = document.getElementById('shape-image');
+  const doPlace = ()=>{
+    const W = arena.offsetWidth || window.innerWidth || 400;
+    const H = arena.offsetHeight || window.innerHeight - 120 || 500;
+    placeNumbers(canvas, null, round.seed, data.settings.min, data.settings.max, data.settings.density, round.target, W, H);
+    canvas.querySelectorAll('.num-token').forEach(el=>{
+      el.addEventListener('click', (e)=>handleNumTap(e, round));
+      el.addEventListener('touchend', (e)=>{e.preventDefault();handleNumTap(e,round);},{passive:false});
+    });
+  };
+  setTimeout(()=>{ if(imgEl.complete) doPlace(); else imgEl.onload = doPlace; }, 100);
+  myRoundStart = Date.now();
+  // Timer keeps running across rounds - just update display
+  if(!timerInterval) {
+    startTimer(document.getElementById('timer-display'));
+  }
+}
+
+async function finishGame() {
+  stopBgMusic();
+  clearInterval(autoAdvanceTimer);
+  const total = myScoresLocal.reduce((a,b)=>a+b,0);
+  const ref = doc(db,'rooms',currentRoom);
+  const snap = await getDoc(ref);
+  const d = snap.data();
+  await updateDoc(ref,{
+    [`players.${myUid}.scores`]: myScoresLocal,
+    [`players.${myUid}.totalTime`]: total,
+    [`players.${myUid}.finished`]: true,
+    [`players.${myUid}.roundsDone`]: myCurrentRound
+  });
+  if(!d.winner) {
+    await updateDoc(ref,{ winner:myUid, winnerName:myName, status:'finished' });
+    toast('🏆 You finished first! You win!', 4000);
+    setTimeout(async()=>{ const s = await getDoc(ref); showFinalResults(s.data()); }, 2000);
+  } else {
+    toast('✅ You finished! Waiting for results…', 2000);
+  }
+}
+
+async function startNewGame(data, acceptedUids) {
+  const ref = doc(db,'rooms',currentRoom);
+  const range = data.settings.max - data.settings.min + 1;
+  const pool = Array.from({length: range}, (_,i) => data.settings.min+i);
+  for(let i=pool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  const targets = pool.slice(0, Math.min(data.settings.rounds, range));
+  const roundData = targets.map((target,i)=>({ seed: Date.now()+i*1000, target }));
+  const players = {};
+  Object.entries(data.players||{}).forEach(([uid,p])=>{
+    if(acceptedUids.includes(uid)) {
+      players[uid] = { name:p.name, scores:[], totalTime:0, finished:false, roundsDone:0 };
+    }
+  });
+  await updateDoc(ref,{
+    status:'playing',
+    rounds: roundData,
+    players,
+    winner: null,
+    winnerName: null,
+    playAgain: null,
+    startedAt: serverTimestamp()
+  });
+}
+
 function startGameFromRoomData(data) {
   startBgMusic();
   currentGameData = data;
-  currentRound = data.currentRound||1;
   totalRounds = data.totalRounds||5;
+  myCurrentRound = 0;
+  myScoresLocal = [];
   hasFoundThisRound = false;
-
-  showScreen('game-screen');
-  document.getElementById('target-display').textContent = data.currentTarget;
-  document.getElementById('round-display').textContent = `Round ${currentRound} / ${totalRounds}`;
-  document.getElementById('found-banner').classList.add('hidden');
+  timerStart = Date.now();
+  loadRound();
+  
 
   const arena = document.getElementById('game-screen').querySelector('.game-arena');
   const W = arena.clientWidth || 400;
   const H = arena.clientHeight || 500;
-
-  const svgEl = document.getElementById('shape-svg');
-  svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`);
   document.getElementById('shape-image').src = 'handbg.webp';
 
-  const canvas = document.getElementById('number-canvas');
-  canvas.style.width = W+'px';
-  canvas.style.height = H+'px';
-  canvas.style.position = 'absolute';
+  
 
-  const imgEl2 = document.getElementById('shape-image');
-  const doPlace2 = ()=>placeNumbers(canvas, null, data.seed, data.settings.min, data.settings.max, data.settings.density, data.currentTarget, W, H);
-  if(imgEl2.complete) doPlace2(); else imgEl2.onload = doPlace2;
 
-  // Attach touch/click events
-  canvas.querySelectorAll('.num-token').forEach(el=>{
-    el.addEventListener('click', (e)=>handleNumTap(e, data));
-    el.addEventListener('touchend', (e)=>{e.preventDefault();handleNumTap(e,data);},{passive:false});
-  });
-
-  startTimer(document.getElementById('timer-display'));
-
-  // Watch for round updates (someone else found it)
+  // Watch for winner
   if(roomUnsub) roomUnsub();
   const ref = doc(db,'rooms',currentRoom);
   roomUnsub = onSnapshot(ref, snap=>{
     if(!snap.exists()) return;
     const d = snap.data();
     updatePlayersStatus(d.players, d.roundResults);
-    const rKey = `round_${d.currentRound||1}`;
-    if(d.roundResults && d.roundResults[rKey] && !document.getElementById('found-banner').classList.contains('hidden')===false) {
-      // Check if this is a new result (not already shown)
-      showFoundBanner(d.roundResults[rKey], d);
+    if(d.winner && d.status==='finished') {
+      stopBgMusic();
+      clearInterval(autoAdvanceTimer);
+      if(d.winner !== myUid) {
+        toast(`🏆 ${d.winnerName} finished first! Game over!`, 4000);
+      }
+      setTimeout(()=>showFinalResults(d), 2000);
     }
-    if(d.currentRound !== currentRound && d.status==='playing') {
-      startGameFromRoomData(d);
-    }
-    if(d.status==='finished') { stopBgMusic(); showFinalResults(d); }
   });
 }
 
 let wrongAttempts = 0;
-function handleNumTap(e, data) {
+function handleNumTap(e, round) {
   if(hasFoundThisRound) return;
   const el = e.currentTarget;
   const val = parseInt(el.dataset.value);
-  if(val===data.currentTarget) {
+  if(val===round.target) {
     hasFoundThisRound = true;
     wrongAttempts = 0;
-    const ms = stopTimer();
+    const ms = timerStart ? Date.now()-timerStart : 0;
     el.classList.add('found');
-    recordFound(ms, data);
+    myScoresLocal.push(ms);
+    myCurrentRound++;
+    toast(`✅ Found in ${formatTime(ms)}!`, 1500);
+    setTimeout(()=>loadRound(), 1800);
   } else {
     wrongAttempts++;
     el.classList.add('wrong');
@@ -1000,73 +1151,38 @@ function handleNumTap(e, data) {
     if(wrongAttempts >= 5) {
       hasFoundThisRound = true;
       wrongAttempts = 0;
-      const ms = stopTimer();
+      const ms = timerStart ? Date.now()-timerStart : 0;
       toast('❌ 5 wrong attempts — round lost!', 3000);
-      recordFound(ms * 3, data); // penalty: 3x time
-      setTimeout(()=>document.getElementById('found-banner').classList.remove('hidden'), 1000);
+      myScoresLocal.push(ms * 3);
+      myCurrentRound++;
+      setTimeout(()=>loadRound(), 2000);
     } else {
       toast(`Wrong! ${5 - wrongAttempts} attempt${5-wrongAttempts===1?'':'s'} left`);
     }
   }
 }
-
-async function recordFound(ms, data) {
-  const rKey = `round_${currentRound}`;
-  const ref = doc(db,'rooms',currentRoom);
-  await updateDoc(ref, {
-    [`roundResults.${rKey}`]: { uid:myUid, name:myName, ms, ts:Date.now() },
-    [`players.${myUid}.scores`]: arrayUnion(ms)
-  });
-}
-
-function showFoundBanner(result, data) {
-  const banner = document.getElementById('found-banner');
-  if(!banner.classList.contains('hidden')) return; // already showing
-  stopTimer();
-  banner.classList.remove('hidden');
-  document.getElementById('found-name').textContent = result.uid===myUid ? '🎉 You found it!' : `${result.name} found it!`;
-  document.getElementById('found-time').textContent = formatTime(result.ms);
-  document.getElementById('found-round-label').textContent = `Round ${currentRound} of ${totalRounds}`;
-
-  const nextBtn = document.getElementById('next-round-btn');
-  const waitingEl = document.getElementById('waiting-next');
-  nextBtn.style.display = isHost ? 'flex' : 'none';
-  waitingEl.style.display = isHost ? 'none' : 'block';
-}
-
-document.getElementById('next-round-btn').addEventListener('click', async()=>{
-  if(!isHost||!currentRoom) return;
-  const ref = doc(db,'rooms',currentRoom);
-  const snap = await getDoc(ref);
-  const data = snap.data();
-  const nextRound = (data.currentRound||1)+1;
-  if(nextRound>data.totalRounds) {
-    await updateDoc(ref,{status:'finished'});
-    return;
-  }
-  const newSeed = Date.now();
-  const newTarget = randomInt(data.settings.min, data.settings.max);
-  await updateDoc(ref,{
-    currentRound:nextRound,
-    seed:newSeed,
-    currentTarget:newTarget,
-    [`roundResults.round_${nextRound}`]:null
-  });
-});
-
+let previousPlayers = {};
 function updatePlayersStatus(players, roundResults) {
   const el = document.getElementById('players-status');
   el.innerHTML = '';
   Object.entries(players||{}).forEach(([uid,p])=>{
+    if(!p||!p.name) {
+      const leftName = previousPlayers[uid]?.name || 'A player';
+      toast(`${leftName} has left the game`, 3000);
+      return;
+    }
     const found = roundResults && Object.values(roundResults).some(r=>r&&r.uid===uid);
     const div = document.createElement('div');
     div.className='mini-player';
     div.innerHTML=`<div class="mini-dot ${found?'found':''}"></div><span>${p.name}${uid===myUid?' (me)':''}</span>`;
     el.appendChild(div);
   });
+  previousPlayers = {...(players||{})};
 }
 
-document.getElementById('game-leave-btn').addEventListener('click', leaveRoom);
+document.getElementById('solo-leave-btn').addEventListener('click', ()=>{
+  if(currentRoom) leaveRoom();
+});
 
 // ═══════════════════════════════
 // BACKGROUND MUSIC
@@ -1107,23 +1223,94 @@ document.addEventListener('touchend', e=>{
 }, {passive:true});
 
 // ═══════════════════════════════
-// PWA SERVICE WORKER
+// BACK BUTTON HANDLER
 // ═══════════════════════════════
+window.addEventListener('popstate', ()=>{
+  const active = document.querySelector('.screen:not(.hidden)');
+  if(!active) return;
+  const id = active.id;
+  if(id === 'home-screen' || id === 'auth-screen') return;
+  if(id === 'lobby-screen') { document.getElementById('lobby-leave-btn').click(); return; }
+  if(id === 'game-screen') { document.getElementById('game-leave-btn').click(); return; }
+  if(id === 'solo-screen') { document.getElementById('solo-leave-btn').click(); return; }
+  if(id === 'join-screen') { document.getElementById('join-back-btn').click(); return; }
+  if(id === 'solo-setup-screen') { document.getElementById('solo-setup-back-btn').click(); return; }
+  if(id === 'history-screen') { document.getElementById('history-back-btn').click(); return; }
+  if(id === 'profile-screen') { document.getElementById('profile-back-btn').click(); return; }
+  if(id === 'results-screen') { document.getElementById('results-home-btn').click(); return; }
+  showScreen('home-screen');
+});
+
+// Push initial state so back button has something to pop
+history.pushState({}, '');
   
   
 
+
+let playAgainCountdownTimer = null;
 
 document.getElementById('play-again-btn').addEventListener('click', async()=>{
-  if(!isHost||!currentRoom) return;
+  if(!currentRoom) return;
   const ref = doc(db,'rooms',currentRoom);
-  const snap = await getDoc(ref);
-  const d = snap.data();
-  // Reset scores
-  const players={};
-  Object.entries(d.players||{}).forEach(([uid,p])=>{players[uid]={...p,scores:[],score:0};});
-  const seed=Date.now();
-  const target=randomInt(d.settings.min,d.settings.max);
-  await updateDoc(ref,{status:'playing',currentRound:1,seed,currentTarget:target,roundResults:{},players});
+  const expiresAt = Date.now() + 30000;
+  await updateDoc(ref,{
+    playAgain:{
+      requestedBy: myUid,
+      requestedByName: myName,
+      accepted: [myUid],
+      declined: [],
+      expiresAt
+    }
+  });
+  document.getElementById('play-again-btn').style.display = 'none';
+  document.getElementById('play-again-status').style.display = 'block';
+  document.getElementById('play-again-status').textContent = 'Waiting for others… (30s)';
+  // Countdown
+  let secs = 30;
+  clearInterval(playAgainCountdownTimer);
+  playAgainCountdownTimer = setInterval(()=>{
+    secs--;
+    document.getElementById('play-again-status').textContent = `Waiting for others… (${secs}s)`;
+    if(secs<=0) clearInterval(playAgainCountdownTimer);
+  },1000);
+});
+
+document.getElementById('accept-play-again-btn').addEventListener('click', async()=>{
+  if(!currentRoom) return;
+  const ref = doc(db,'rooms',currentRoom);
+  await updateDoc(ref,{ 'playAgain.accepted': arrayUnion(myUid) });
+  document.getElementById('play-again-modal').classList.add('hidden');
+  clearInterval(playAgainCountdownTimer);
+  toast('✅ You accepted! Starting soon…', 2000);
+});
+
+document.getElementById('decline-play-again-btn').addEventListener('click', async()=>{
+  if(!currentRoom) return;
+  const ref = doc(db,'rooms',currentRoom);
+  await updateDoc(ref,{ 'playAgain.declined': arrayUnion(myUid) });
+  document.getElementById('play-again-modal').classList.add('hidden');
+  clearInterval(playAgainCountdownTimer);
+  toast('You declined. Returning home…', 2000);
+  setTimeout(()=>showScreen('home-screen'), 2000);
+});
+
+document.getElementById('accept-play-again-btn').addEventListener('click', async()=>{
+  if(!currentRoom) return;
+  const ref = doc(db,'rooms',currentRoom);
+  await updateDoc(ref,{ 'playAgain.accepted': arrayUnion(myUid) });
+  document.getElementById('play-again-modal').classList.add('hidden');
+  clearInterval(playAgainCountdownTimer);
+  toast('✅ You accepted! Starting soon…', 2000);
+});
+
+document.getElementById('decline-play-again-btn').addEventListener('click', async()=>{
+  if(!currentRoom) return;
+  const ref = doc(db,'rooms',currentRoom);
+  await updateDoc(ref,{ 'playAgain.declined': arrayUnion(myUid) });
+  document.getElementById('play-again-modal').classList.add('hidden');
+  clearInterval(playAgainCountdownTimer);
+  toast('You declined.', 2000);
+  setTimeout(()=>showScreen('home-screen'), 2000);
 });
 
 document.getElementById('results-home-btn').addEventListener('click',()=>{
@@ -1154,12 +1341,12 @@ document.getElementById('solo-leave-btn').addEventListener('click',()=>{
 });
 
 function startSolo() {
-  startBgMusic();
   const min=parseInt(document.getElementById('solo-min').value);
   const max=parseInt(document.getElementById('solo-max').value);
   const rounds=parseInt(document.getElementById('solo-rounds').value);
   if(!min||!max||!rounds){toast('Please fill in all settings');return;}
   if(min>=max){toast('Min must be less than Max');return;}
+  startBgMusic();
   soloRound=1;
   soloScores=[];
   const leavBtn = document.getElementById('solo-leave-btn');
@@ -1198,9 +1385,9 @@ function startSoloRound() {
   canvas.style.position='absolute';
   canvas.style.top='0';
   canvas.style.left='0';
-  const imgEl = document.getElementById('solo-shape-image');
+  const imgEl = document.getElementById('shape-image');
   const doPlace = ()=>placeNumbers(canvas,null,seed,min,max,density,target,W,H);
-  if(imgEl.complete) doPlace(); else imgEl.onload = doPlace;
+  setTimeout(()=>{ if(imgEl.complete) doPlace(); else imgEl.onload = doPlace; }, 300);
 
   // Timer
   clearInterval(soloTimerInterval);
@@ -1211,10 +1398,30 @@ function startSoloRound() {
   },100);
 
   // Events
-  canvas.querySelectorAll('.num-token').forEach(el=>{
-    el.addEventListener('click',e=>handleSoloTap(e,target));
-    el.addEventListener('touchend',e=>{e.preventDefault();handleSoloTap(e,target);},{passive:false});
-  });
+  document.getElementById('multi-canvas').innerHTML = '';
+  document.getElementById('multi-canvas').style.pointerEvents = 'none';
+  const freshCanvas = document.getElementById('solo-canvas');
+  freshCanvas.innerHTML = '';
+  freshCanvas.style.pointerEvents = 'none';
+  const soloImg = document.getElementById('solo-shape-image');
+  const attachEvents = ()=>{
+    freshCanvas.style.pointerEvents = 'auto';
+    freshCanvas.onclick = (e)=>{
+      const token = e.target.closest('.num-token');
+      if(token) handleSoloTap({currentTarget:token}, target);
+    };
+    freshCanvas.ontouchend = (e)=>{
+      e.preventDefault();
+      const token = e.target.closest('.num-token');
+      if(token) handleSoloTap({currentTarget:token}, target);
+    };
+  };
+  const doSoloPlace = ()=>{
+    placeNumbers(freshCanvas, null, seed, min, max, density, target, W, H);
+    requestAnimationFrame(attachEvents);
+  };
+  if(soloImg.complete && soloImg.naturalWidth) doSoloPlace();
+  else soloImg.onload = doSoloPlace;
 }
 
 let soloWrongAttempts = 0;
@@ -1267,25 +1474,83 @@ function showFinalResults(data) {
   saveGameToHistory(data);
   showScreen('results-screen');
   const players = data.players||{};
+  const winner = data.winnerName || '—';
   const totals = Object.entries(players).map(([uid,p])=>{
-    const total = (p.scores||[]).reduce((a,b)=>a+b,0);
-    return {uid, name:p.name, total};
-  }).sort((a,b)=>a.total-b.total);
-  document.getElementById('results-sub').textContent=`${data.totalRounds} rounds completed`;
+    if(!p||!p.name) return null;
+    const total = p.totalTime || (p.scores||[]).reduce((a,b)=>a+b,0) || 0;
+    const done = p.roundsDone || (p.scores||[]).length || 0;
+    return {uid, name:p.name, total, done, finished:p.finished||false};
+  }).filter(Boolean).sort((a,b)=>{
+    if(a.finished && !b.finished) return -1;
+    if(!a.finished && b.finished) return 1;
+    if(a.done !== b.done) return b.done - a.done;
+    return a.total - b.total;
+  });
+  document.getElementById('results-sub').textContent=`🏆 ${winner} finished first!`;
   const list=document.getElementById('score-list');
   list.innerHTML='';
   totals.forEach((t,i)=>{
     const div=document.createElement('div');
     div.className='score-item'+(i===0?' winner':'')+(t.uid===myUid?' me':'');
     div.innerHTML=`
-      <div class="score-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="score-rank">${i===0?'🏆':i+1}</div>
       <div class="player-avatar" style="background:${avatarColor(t.uid)};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700">${t.name[0].toUpperCase()}</div>
       <div class="score-name">${t.name}${t.uid===myUid?' (you)':''}</div>
-      <div class="score-time">${formatTime(t.total)}</div>
+      <div style="text-align:right">
+        <div class="score-time">${formatTime(t.total)}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${t.done||0}/${data.totalRounds} rounds${t.finished?' ✓':''}</div>
+      </div>
     `;
     list.appendChild(div);
   });
-  document.getElementById('play-again-btn').style.display = isHost ? 'flex' : 'none';
+  document.getElementById('play-again-btn').style.display = 'flex';
+  document.getElementById('play-again-status').style.display = 'none';
+
+  // Watch for play again and new game
+  if(roomUnsub) roomUnsub();
+  const paRef = doc(db,'rooms',currentRoom);
+  roomUnsub = onSnapshot(paRef, snap=>{
+    if(!snap.exists()) return;
+    const d = snap.data();
+
+    // Someone requested play again - show modal to others
+    if(d.playAgain && d.playAgain.requestedBy && d.playAgain.requestedBy !== myUid) {
+      const alreadyResponded = d.playAgain.accepted?.includes(myUid) || d.playAgain.declined?.includes(myUid);
+      if(!alreadyResponded && document.getElementById('play-again-modal').classList.contains('hidden')) {
+        document.getElementById('play-again-modal-text').textContent = `${d.playAgain.requestedByName} wants to play again!`;
+        document.getElementById('play-again-modal').classList.remove('hidden');
+        let secs = Math.max(0, Math.floor((d.playAgain.expiresAt - Date.now())/1000));
+        clearInterval(playAgainCountdownTimer);
+        playAgainCountdownTimer = setInterval(async()=>{
+          secs--;
+          document.getElementById('play-again-countdown').textContent = `Auto-declining in ${secs}s…`;
+          if(secs<=0) {
+            clearInterval(playAgainCountdownTimer);
+            document.getElementById('play-again-modal').classList.add('hidden');
+            await updateDoc(paRef,{ 'playAgain.declined': arrayUnion(myUid) });
+          }
+        },1000);
+      }
+    }
+
+    // Check if time to start new game
+    if(d.playAgain && d.playAgain.accepted && d.playAgain.accepted.length >= 1) {
+      const allPlayers = Object.keys(d.players||{});
+      const allResponded = allPlayers.every(uid=>
+        d.playAgain.accepted?.includes(uid) || d.playAgain.declined?.includes(uid)
+      );
+      const expired = d.playAgain.expiresAt < Date.now();
+      if((allResponded || expired) && d.playAgain.requestedBy === myUid) {
+        startNewGame(d, d.playAgain.accepted);
+      }
+    }
+
+    // New game started - join it
+    if(d.status === 'playing' && d.rounds && d.rounds.length > 0) {
+      if(roomUnsub) roomUnsub();
+      startGameFromRoomData(d);
+    }
+  });
 }
 
 function showSoloResults() {
@@ -1298,7 +1563,7 @@ function showSoloResults() {
   const list=document.getElementById('score-list');
   list.innerHTML=`
     <div class="score-item winner">
-      <div class="score-rank">🎯</div>
+      <div class="score-rank">✅</div>
       <div class="player-avatar" style="background:${avatarColor(myUid)};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700">${myName[0]?.toUpperCase()||'?'}</div>
       <div class="score-name">${myName}</div>
       <div style="text-align:right">
@@ -1759,7 +2024,7 @@ function showHistoryDetail(g) {
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
       ${g.players.map((p,i)=>`
         <div class="score-item ${i===0?'winner':''} ${p.uid===myUid?'me':''}">
-          <div class="score-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+          
           <div class="score-name">${p.name}${p.uid===myUid?' (you)':''}</div>
           <div class="score-time">${formatTime(p.total)}</div>
         </div>
