@@ -1,0 +1,28 @@
+name: Bump Cache Version
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump sw.js cache version
+        run: |
+          current=$(grep -oP 'numhunt-v\K\d+' sw.js)
+          next=$((current + 1))
+          sed -i "s/numhunt-v$current/numhunt-v$next/" sw.js
+          echo "Bumped to numhunt-v$next"
+
+      - name: Commit bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add sw.js
+          git diff --staged --quiet || git commit -m "chore: bump cache to v$next"
+          git push
