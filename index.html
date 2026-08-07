@@ -674,7 +674,12 @@ function pointInPolygon(px, py, pts) {
 function placeNumbers(containerEl, svgEl, seed, min, max, count, targetNumber, canvasW, canvasH) {
   containerEl.innerHTML = '';
   const rng = seededRandom(seed * 999);
-  const tokenSize = count >= 400 ? 8 : count >= 300 ? 9 : 10;
+  const originalCount = count;
+  const tokenSize = originalCount >= 800 ? 7 : originalCount >= 600 ? 10 : 14;
+  const spacingX = tokenSize * 2.8;
+  const spacingY = tokenSize * 1.5;
+  const maxFit = Math.floor(canvasW / spacingX) * Math.floor(canvasH / spacingY);
+  count = Math.min(maxFit, max - min + 1);
   containerEl.style.setProperty('--token-size', tokenSize+'px');
   const img = containerEl.id === 'solo-canvas' 
     ? document.getElementById('solo-shape-image') 
@@ -1322,6 +1327,42 @@ document.getElementById('results-home-btn').addEventListener('click',()=>{
 // ═══════════════════════════════
 // SOLO MODE
 // ═══════════════════════════════
+function updateDensityOptions(minId, maxId, densityId) {
+  const min = parseInt(document.getElementById(minId).value)||0;
+  const max = parseInt(document.getElementById(maxId).value)||0;
+  const range = max - min + 1;
+  const select = document.getElementById(densityId);
+  const normalOpt = select.options[0];
+  const denseOpt = select.options[1];
+  const packedOpt = select.options[2];
+
+  if(range > 500) {
+    normalOpt.disabled = true;
+    denseOpt.disabled = true;
+    packedOpt.disabled = false;
+    select.value = '800';
+  } else if(range > 100) {
+    normalOpt.disabled = true;
+    denseOpt.disabled = false;
+    packedOpt.disabled = false;
+    if(select.value === '400') select.value = '600';
+  } else {
+    normalOpt.disabled = false;
+    denseOpt.disabled = false;
+    packedOpt.disabled = false;
+  }
+}
+
+// Solo
+['solo-min','solo-max'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>updateDensityOptions('solo-min','solo-max','solo-density'));
+});
+
+// Multiplayer
+['range-min','range-max'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>updateDensityOptions('range-min','range-max','density-select'));
+});
+
 document.getElementById('solo-start-btn').addEventListener('click', startSolo);
 document.getElementById('solo-setup-back-btn').addEventListener('click',()=>showScreen('home-screen'));
 document.getElementById('solo-leave-btn').addEventListener('click',()=>{
