@@ -4,12 +4,31 @@
   "description": "Find the hidden number before time runs out! A multiplayer number hunting game.",
   "start_url": "/",
   "id": "/",
+  "scope": "/",
+  "lang": "en",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#0f0f1a",
   "theme_color": "#e94560",
   "orientation": "portrait-primary",
   "categories": ["games", "entertainment"],
   "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Solo Practice",
+      "short_name": "Solo",
+      "description": "Start a solo practice game",
+      "url": "/?mode=solo",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Create Room",
+      "short_name": "Multiplayer",
+      "description": "Create a multiplayer room",
+      "url": "/?mode=multi",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "screenshots": [
     {
       "src": "/screenshot1.png",
