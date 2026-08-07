@@ -1,4 +1,4 @@
-const CACHE = 'numhunt-v1.8';
+const CACHE = 'numhunt-v1.9';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -23,5 +23,6 @@ self.addEventListener('fetch', e => {
     );
   }
 });
+
 
 
