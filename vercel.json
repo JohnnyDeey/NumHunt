@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/.well-known/assetlinks.json", "destination": "/assetlinks.json" },
     { "source": "/manifest.json", "destination": "/manifest.json" },
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/icon-192.png", "destination": "/icon-192.png" },

@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.numhunt.app",
+        "sha256_cert_fingerprints": ["88:9E:14:36:E8:6D:25:32:3F:9C:30:26:E2:0F:C3:34:92:45:8C:31:44:70:61:D6:11:10:4D:B9:E9:0D:23:63"]
+      }
+    }]
