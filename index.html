@@ -1283,11 +1283,22 @@ document.addEventListener('touchend', e=>{
 // ═══════════════════════════════
 // BACK BUTTON HANDLER
 // ═══════════════════════════════
+let lastBackPress = 0;
 window.addEventListener('popstate', ()=>{
   const active = document.querySelector('.screen:not(.hidden)');
   if(!active) return;
   const id = active.id;
-  if(id === 'home-screen' || id === 'auth-screen') return;
+  if(id === 'home-screen' || id === 'auth-screen') {
+    const now = Date.now();
+    if(now - lastBackPress < 2000) {
+      window.history.go(-1);
+      return;
+    }
+    lastBackPress = now;
+    toast('Press back again to exit', 2000);
+    history.pushState({}, '');
+    return;
+  }
   if(id === 'lobby-screen') { document.getElementById('lobby-leave-btn').click(); return; }
   if(id === 'game-screen') { document.getElementById('game-leave-btn').click(); return; }
   if(id === 'solo-screen') { document.getElementById('solo-leave-btn').click(); return; }
