@@ -871,6 +871,7 @@ document.getElementById('join-confirm-btn').addEventListener('click',async()=>{
 function joinLobby(code) {
   showScreen('lobby-screen');
   document.getElementById('lobby-room-code').textContent = code;
+  startPlayAgainListener();
   document.getElementById('host-settings').style.display = isHost ? 'block' : 'none';
   document.getElementById('guest-settings').style.display = isHost ? 'none' : 'block';
   document.getElementById('lobby-mode-pill').textContent = isHost ? 'HOST' : 'GUEST';
@@ -893,7 +894,7 @@ function renderLobbyPlayers(players, hostUid) {
     div.className = 'player-item';
     div.innerHTML = `
       <div class="player-avatar" style="background:${avatarColor(uid)}">${p.name[0].toUpperCase()}</div>
-      <span>${p.name}${uid===myUid?' (you)':''}</span>
+      <span>${p.name}${uid===myUid?' ⭐':''}</span>
       ${uid===hostUid?'<span class="badge-host">HOST</span>':'<span class="badge-ready">READY</span>'}
     `;
     list.appendChild(div);
@@ -901,7 +902,7 @@ function renderLobbyPlayers(players, hostUid) {
 }
 
 // Host updates settings live
-['range-min','range-max','rounds-select'].filter(id=>document.getElementById(id)).forEach(id=>{
+['range-min','range-max','rounds-select','density-select'].filter(id=>document.getElementById(id)).forEach(id=>{
   document.getElementById(id).addEventListener('change', async()=>{
     if(!isHost||!currentRoom) return;
     const ref = doc(db,'rooms',currentRoom);
@@ -909,7 +910,7 @@ function renderLobbyPlayers(players, hostUid) {
       min: parseInt(document.getElementById('range-min').value),
       max: parseInt(document.getElementById('range-max').value),
       rounds: parseInt(document.getElementById('rounds-select').value),
-      density: 600
+      density: parseInt(document.getElementById('density-select').value)
     }});
   });
 });
@@ -946,7 +947,13 @@ document.getElementById('start-game-btn').addEventListener('click', async()=>{
   const rounds = parseInt(document.getElementById('rounds-select').value);
   if(!min||!max||!rounds){toast('Please fill in all settings ⚠️');return;}
   if(min>=max){toast('Min must be less than Max');return;}
-  const density = 600;
+  // Check at least one other player has joined
+  const roomSnap = await getDoc(doc(db,'rooms',currentRoom));
+  const players = roomSnap.data()?.players || {};
+  const playerCount = Object.values(players).filter(p=>p&&p.name).length;
+  if(playerCount < 2){toast('⚠️ Wait for at least one player to join!');return;}
+  const densityEl = document.getElementById('density-select');
+  const density = densityEl ? parseInt(densityEl.value) : 600;
   // Pre-generate all rounds with unique targets
   const range = max - min + 1;
   const pool = Array.from({length: range}, (_,i) => min+i);
@@ -988,12 +995,50 @@ document.getElementById('game-leave-btn').addEventListener('click', ()=>{
     btn.textContent = '← Exit';
   }
 });
+let playAgainUnsub = null;
+
+function startPlayAgainListener() {
+  if(!currentRoom) return;
+  if(playAgainUnsub) playAgainUnsub();
+  const ref = doc(db,'rooms',currentRoom);
+  playAgainUnsub = onSnapshot(ref, snap=>{
+    if(!snap.exists()) return;
+    const d = snap.data();
+    if(d.playAgain && d.playAgain.requestedBy && d.playAgain.requestedBy !== myUid) {
+      const alreadyResponded = d.playAgain.accepted?.includes(myUid) || d.playAgain.declined?.includes(myUid);
+      if(!alreadyResponded && document.getElementById('play-again-modal').classList.contains('hidden')) {
+        document.getElementById('play-again-modal-text').textContent = `${d.playAgain.requestedByName} wants to play again!`;
+        document.getElementById('play-again-modal').classList.remove('hidden');
+        let secs = Math.max(0, Math.floor((d.playAgain.expiresAt - Date.now())/1000));
+        clearInterval(playAgainCountdownTimer);
+        playAgainCountdownTimer = setInterval(async()=>{
+          secs--;
+          document.getElementById('play-again-countdown').textContent = `Auto-declining in ${secs}s…`;
+          if(secs<=0) {
+            clearInterval(playAgainCountdownTimer);
+            document.getElementById('play-again-modal').classList.add('hidden');
+            await updateDoc(ref,{ 'playAgain.declined': arrayUnion(myUid) });
+          }
+        },1000);
+      }
+    }
+    // New game started
+    if(d.status === 'playing' && d.rounds && d.rounds.length > 0 && d.playAgain === null) {
+      if(playAgainUnsub) playAgainUnsub();
+      playAgainUnsub = null;
+      startGameFromRoomData(d);
+    }
+  });
+}
+
 async function leaveRoom() {
   clearInterval(timerInterval);
   clearInterval(autoAdvanceTimer);
   stopBgMusic();
   if(roomUnsub) roomUnsub();
   roomUnsub = null;
+  if(playAgainUnsub) playAgainUnsub();
+  playAgainUnsub = null;
   if(currentRoom && myUid) {
     try {
       const ref = doc(db,'rooms',currentRoom);
@@ -1147,6 +1192,14 @@ function handleNumTap(e, round) {
     el.classList.add('found');
     myScoresLocal.push(ms);
     myCurrentRound++;
+    // Save progress to Firestore so others can see it
+    if(currentRoom) {
+      const ref = doc(db,'rooms',currentRoom);
+      updateDoc(ref,{
+        [`players.${myUid}.scores`]: myScoresLocal,
+        [`players.${myUid}.roundsDone`]: myCurrentRound
+      }).catch(()=>{});
+    }
     toast(`✅ Found in ${formatTime(ms)}!`, 1500);
     setTimeout(()=>loadRound(), 1800);
   } else {
@@ -1179,7 +1232,7 @@ function updatePlayersStatus(players, roundResults) {
     const found = roundResults && Object.values(roundResults).some(r=>r&&r.uid===uid);
     const div = document.createElement('div');
     div.className='mini-player';
-    div.innerHTML=`<div class="mini-dot ${found?'found':''}"></div><span>${p.name}${uid===myUid?' (me)':''}</span>`;
+    div.innerHTML=`<div class="mini-dot ${found?'found':''}"></div><span>${p.name}${uid===myUid?' ⭐':''}</span>`;
     el.appendChild(div);
   });
   previousPlayers = {...(players||{})};
@@ -1536,7 +1589,7 @@ function showFinalResults(data) {
     div.innerHTML=`
       <div class="score-rank">${i===0?'🏆':i+1}</div>
       <div class="player-avatar" style="background:${avatarColor(t.uid)};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700">${t.name[0].toUpperCase()}</div>
-      <div class="score-name">${t.name}${t.uid===myUid?' (you)':''}</div>
+      <div class="score-name">${t.name}${t.uid===myUid?' ⭐':''}</div>
       <div style="text-align:right">
         <div class="score-time">${formatTime(t.total)}</div>
         <div style="font-size:.72rem;color:var(--muted)">${t.done||0}/${data.totalRounds} rounds${t.finished?' ✓':''}</div>
@@ -1554,25 +1607,7 @@ function showFinalResults(data) {
     if(!snap.exists()) return;
     const d = snap.data();
 
-    // Someone requested play again - show modal to others
-    if(d.playAgain && d.playAgain.requestedBy && d.playAgain.requestedBy !== myUid) {
-      const alreadyResponded = d.playAgain.accepted?.includes(myUid) || d.playAgain.declined?.includes(myUid);
-      if(!alreadyResponded && document.getElementById('play-again-modal').classList.contains('hidden')) {
-        document.getElementById('play-again-modal-text').textContent = `${d.playAgain.requestedByName} wants to play again!`;
-        document.getElementById('play-again-modal').classList.remove('hidden');
-        let secs = Math.max(0, Math.floor((d.playAgain.expiresAt - Date.now())/1000));
-        clearInterval(playAgainCountdownTimer);
-        playAgainCountdownTimer = setInterval(async()=>{
-          secs--;
-          document.getElementById('play-again-countdown').textContent = `Auto-declining in ${secs}s…`;
-          if(secs<=0) {
-            clearInterval(playAgainCountdownTimer);
-            document.getElementById('play-again-modal').classList.add('hidden');
-            await updateDoc(paRef,{ 'playAgain.declined': arrayUnion(myUid) });
-          }
-        },1000);
-      }
-    }
+    
 
     // Check if time to start new game
     if(d.playAgain && d.playAgain.accepted && d.playAgain.accepted.length >= 1) {
@@ -1912,18 +1947,28 @@ async function saveGameToHistory(data, isSolo=false) {
   }
 
   const totals = Object.entries(players).map(([uid,p])=>({
-    uid, name:p.name, total:(p.scores||[]).reduce((a,b)=>a+b,0), scores:p.scores||[]
-  })).sort((a,b)=>a.total-b.total);
+    uid, name:p.name, 
+    total:(p.totalTime)||(p.scores||[]).reduce((a,b)=>a+b,0),
+    done: p.roundsDone||(p.scores||[]).length||0,
+    finished: p.finished||false
+  })).sort((a,b)=>{
+    if(a.finished && !b.finished) return -1;
+    if(!a.finished && b.finished) return 1;
+    if(a.done !== b.done) return b.done - a.done;
+    return a.total - b.total;
+  });
 
-  const isMyWin = totals[0]?.uid === myUid;
+  const actualWinner = data.winnerName || totals[0]?.name || '—';
+  const actualWinnerUid = data.winner || totals[0]?.uid;
+  const isMyWin = actualWinnerUid === myUid;
 
   const entry = {
     id: Date.now(),
     code: isSolo ? 'SOLO' : data.code,
     date: new Date().toISOString(),
     isSolo,
-    winner: totals[0]?.name || '—',
-    winnerUid: totals[0]?.uid,
+    winner: actualWinner,
+    winnerUid: actualWinnerUid,
     isMyWin,
     players: totals,
     rounds,
@@ -2046,7 +2091,7 @@ async function renderHistory() {
         <span class="history-code">${g.code}</span>
         <span class="history-date">${formatDate(g.date)}</span>
       </div>
-      <div class="history-winner">🏆 ${g.winner}${g.isMyWin?' (you)':''}</div>
+      <div class="history-winner">🏆 ${g.winner}${g.isMyWin?' ⭐':''}</div>
       <div class="history-meta">
         ${g.totalRounds} rounds • ${g.players.length} player${g.players.length===1?'':'s'}
         • Range ${g.settings?.min||'?'}–${g.settings?.max||'?'}
@@ -2066,7 +2111,7 @@ function showHistoryDetail(g) {
   meta.innerHTML = `
     <div class="card" style="margin-bottom:12px">
       <div class="detail-stat"><span>Date</span><span>${formatDate(g.date)}</span></div>
-      <div class="detail-stat"><span>Winner</span><span style="color:var(--gold)">${g.winner}${g.isMyWin?' (you)':''}</span></div>
+      <div class="detail-stat"><span>Winner</span><span style="color:var(--gold)">${g.winner}${g.isMyWin?' ⭐':''}</span></div>
       <div class="detail-stat"><span>Players</span><span>${g.players.map(p=>p.name).join(', ')}</span></div>
       <div class="detail-stat"><span>Rounds</span><span>${g.totalRounds}</span></div>
       <div class="detail-stat"><span>Number range</span><span>${g.settings?.min||'?'} – ${g.settings?.max||'?'}</span></div>
@@ -2075,9 +2120,12 @@ function showHistoryDetail(g) {
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
       ${g.players.map((p,i)=>`
         <div class="score-item ${i===0?'winner':''} ${p.uid===myUid?'me':''}">
-          
-          <div class="score-name">${p.name}${p.uid===myUid?' (you)':''}</div>
-          <div class="score-time">${formatTime(p.total)}</div>
+          <div class="score-rank">${i===0?'🏆':i+1}</div>
+          <div class="score-name">${p.name}${p.uid===myUid?' ⭐':''}</div>
+          <div style="text-align:right">
+            <div class="score-time">${formatTime(p.total)}</div>
+            <div style="font-size:.72rem;color:var(--muted)">${p.done||0}/${g.totalRounds} rounds${p.finished?' ✓':''}</div>
+          </div>
         </div>
       `).join('')}
     </div>
@@ -2091,7 +2139,7 @@ function showHistoryDetail(g) {
     div.className = 'round-row';
     div.innerHTML = `
       <div class="round-num">Round ${r.round}</div>
-      <div class="round-winner-name">${r.name}${r.uid===myUid?' (you)':''}</div>
+      <div class="round-winner-name">${r.name}${r.uid===myUid?' ⭐':''}</div>
       <div class="round-time">${formatTime(r.ms)}</div>
     `;
     rounds.appendChild(div);
