@@ -5,6 +5,10 @@
   "start_url": "/",
   "id": "/",
   "scope": "/",
+  "scope_extensions": [
+    { "origin": "https://num-hunt.vercel.app" },
+    { "origin": "https://numhunt-ab9c6.firebaseapp.com" }
+  ],
   "lang": "en",
   "dir": "ltr",
   "display": "standalone",
